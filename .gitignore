@@ -1,5 +1,6 @@
 .vscode/
 PyMediaCompressor_python/
+PyMediaCompressor_logs/
 test/
 out/
 
