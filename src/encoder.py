@@ -1,12 +1,20 @@
 import os
-import sys
 import ffmpeg
 
 
 PROCESSER_NAME = "Automatic media compression processed"
 
 
-def compress_media(input_filepath, output_dirpath, is_force=False, max_height=1440):
+def compress_media(input_filepath: str, output_dirpath: str, is_force=False, max_height=1440):
+    """미디어를 압축합니다.
+
+    Args:
+        input_filepath (str): 미디어 파일 경로
+        output_dirpath (str): 출력 디렉토리 경로
+        is_force (bool, optional): 이미 처리된 미디어 파일을 강제적으로 재처리합니다. Defaults to False.
+        max_height (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
+    """
+
     probe = ffmpeg.probe(input_filepath)
     video_stream = next((stream for stream in probe["streams"] if stream["codec_type"] == "video"), None)
 
