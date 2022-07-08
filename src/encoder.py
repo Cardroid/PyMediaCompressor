@@ -120,10 +120,36 @@ def main():
     logger.info("** 인코딩 작업 시작 **")
     logger.debug(f"입력 인수: {args}")
 
+    # 입력 소스 파일 추출 및 중복 제거
+    file_count = 0
+    dupl_file_count = 0
     input_files = []
-    input_files.extend(*[utils.get_media_files(path) for path in args["input"]])
+    temp_path_dupl_list = []
+    temp_hash_dupl_list = []
+    for input_filepath in args["input"]:
+        input_filepath = os.path.normpath(input_filepath)
+        detected_fileinfos = []
 
-    if args["view_source"]:
-        logger.info("입력 소스파일: \n" + pformat(input_files))
-    else:
-        logger.info(f"입력 소스파일 수: {len(input_files)}")
+        for detected_filepath in utils.get_media_files(input_filepath):
+            if detected_filepath not in temp_path_dupl_list:  # 경로가 겹치는 경우 (1차 필터링)
+                temp_path_dupl_list.append(detected_filepath)
+
+                filehash = utils.get_MD5_hash(detected_filepath)
+                if filehash not in temp_hash_dupl_list:  # MD5 해시가 겹치는 경우 (2차 필터링)
+                    temp_hash_dupl_list.append(filehash)
+
+                    detected_fileinfos.append({"input_file": detected_filepath, "hash": filehash})
+                    file_count += 1
+                    continue
+
+            dupl_file_count += 1
+
+        if len(detected_fileinfos) > 0:
+            input_files.append({"target": input_filepath, "files": detected_fileinfos})
+
+    logger.debug("입력 소스파일: \n" + pformat(input_files))
+    logger.info(f"감지된 소스파일 수: {dupl_file_count + file_count}, 입력 소스파일 수: {file_count}, 중복 소스파일 수: {dupl_file_count}")
+
+    output_dirpath = args["output"]
+    logger.info(f"출력 디렉토리: {output_dirpath}")
+    os.makedirs(output_dirpath, exist_ok=True)
