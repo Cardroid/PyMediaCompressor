@@ -6,7 +6,7 @@ import utils
 PROCESSER_NAME = "Automatic media compression processed"
 
 
-def compress_media(input_filepath: str, output_dirpath: str, is_force=False, max_height=1440):
+def media_compress_encode(inputFilepath: str, outputDirpath: str, isForce=False, maxHeight=1440):
     """미디어를 압축합니다.
 
     Args:
@@ -16,12 +16,12 @@ def compress_media(input_filepath: str, output_dirpath: str, is_force=False, max
         max_height (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
     """
 
-    probe = ffmpeg.probe(input_filepath)
+    probe = ffmpeg.probe(inputFilepath)
     video_stream = next((stream for stream in probe["streams"] if stream["codec_type"] == "video"), None)
 
     is_only_audio = video_stream == None
 
-    os.makedirs(output_dirpath, exist_ok=True)
+    os.makedirs(outputDirpath, exist_ok=True)
 
     ffmpeg_global_args = {}
 
@@ -35,10 +35,10 @@ def compress_media(input_filepath: str, output_dirpath: str, is_force=False, max
         format = "mp4"
         ext = "mp4"
         height = int(video_stream["height"])
-        if height > max_height:
-            ffmpeg_global_args["vf"] = f"scale=-1:{max_height}"
+        if height > maxHeight:
+            ffmpeg_global_args["vf"] = f"scale=-1:{maxHeight}"
 
-    output_filepath = f"{os.path.join(output_dirpath, os.path.splitext(os.path.basename(input_filepath))[0])}.{ext}"
+    output_filepath = f"{os.path.join(outputDirpath, os.path.splitext(os.path.basename(inputFilepath))[0])}.{ext}"
     ffmpeg_global_args["filename"] = output_filepath
     ffmpeg_global_args["format"] = format
 
@@ -62,8 +62,8 @@ def compress_media(input_filepath: str, output_dirpath: str, is_force=False, max
     else:
         # * 영상이 이미 처리된 경우
         print("INFO: 이미 처리된 미디어입니다.", end="")
-        if is_force:
-            print(f"\nINFO: 강제로 재인코딩을 실시합니다... is_force: {is_force}")
+        if isForce:
+            print(f"\nINFO: 강제로 재인코딩을 실시합니다... is_force: {isForce}")
         else:
             print(".. skip")
             exit(0)
@@ -85,7 +85,7 @@ def compress_media(input_filepath: str, output_dirpath: str, is_force=False, max
     # * DEBUG
     # ffmpeg_global_args["t"] = 10
 
-    stream = ffmpeg.input(input_filepath)
+    stream = ffmpeg.input(inputFilepath)
 
     stream = ffmpeg.output(stream, **ffmpeg_global_args)
 
