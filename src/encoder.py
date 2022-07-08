@@ -1,6 +1,7 @@
 import os
 import ffmpeg
-
+import log
+import utils
 
 PROCESSER_NAME = "Automatic media compression processed"
 
@@ -93,3 +94,36 @@ def compress_media(input_filepath: str, output_dirpath: str, is_force=False, max
     stream = ffmpeg.overwrite_output(stream)
 
     ffmpeg.run(stream)
+
+
+def main():
+    import argparse
+    from pprint import pformat
+
+    parser = argparse.ArgumentParser(description="미디어를 압축 인코딩합니다.")
+
+    parser.add_argument("--log-mode", choices=["c", "f", "cf", "console", "file", "consolefile"], dest="log_mode", default="consolefile", help="로그 출력 모드 설정")
+    parser.add_argument("--log-level", choices=log.LOGLEVEL_DICT.keys(), dest="log_level", default="info", help="로그 레벨 설정")
+    parser.add_argument("-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 또는 디렉토리 경로")
+    parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
+    parser.add_argument("--view-source", dest="view_source", action="store_true", help="입력된 경로에서 감지된 소스파일 목록")
+
+    args = vars(parser.parse_args())
+
+    logger = log.get_logger(
+        name=f"{__name__}.command",
+        logLevel=log.LOGLEVEL_DICT[args["log_level"]],
+        useConsole=args["log_mode"] in ["c", "cf", "console", "consolefile"],
+        useRotatingfile=args["log_mode"] in ["f", "cf", "file", "consolefile"],
+    )
+
+    logger.info("** 인코딩 작업 시작 **")
+    logger.debug(f"입력 인수: {args}")
+
+    input_files = []
+    input_files.extend(*[utils.get_media_files(path) for path in args["input"]])
+
+    if args["view_source"]:
+        logger.info("입력 소스파일: \n" + pformat(input_files))
+    else:
+        logger.info(f"입력 소스파일 수: {len(input_files)}")
