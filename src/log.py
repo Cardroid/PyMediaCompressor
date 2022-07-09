@@ -120,8 +120,7 @@ def save_config(config: Dict, filepath: str):
 
 def load_config(filepath: str) -> Dict:
     with open(filepath, "r", encoding="utf-8") as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    return config
+        return yaml.load(f, Loader=yaml.FullLoader)
 
 
 def root_logger_setup():
@@ -141,8 +140,7 @@ def root_logger_setup():
     logging.config.dictConfig(config)
 
     for hdlr in logging.root.handlers:
-        hdlr_name = hdlr.get_name()
-        if hdlr_name.startswith("console"):
+        if (hdlr_name := hdlr.get_name()).startswith("console"):
             hdlr.addFilter(HandlerDestFilter(mode="console"))
         elif hdlr_name.startswith("file"):
             hdlr.addFilter(HandlerDestFilter(mode="file"))
@@ -179,12 +177,10 @@ class HandlerDestFilter(logging.Filter):
         if len(record.args) == 0:
             return True
 
-        dest = record.args.get("dest", None)
-        if not utils.is_str_empty_or_space(dest):
-            if (dest == self.MODE_CONSOLE and self.mode == self.MODE_CONSOLE) or (dest == self.MODE_FILE and self.mode == self.MODE_FILE):
-                return True
-            return False
-        return True
+        if not utils.is_str_empty_or_space(dest := record.args.get("dest", None)):
+            return (dest == self.mode == self.MODE_CONSOLE) or (dest == self.mode == self.MODE_FILE)
+        else:
+            return True
 
     def _format_line(self, record: logging.LogRecord):
         record.msg = self.LINE_FORMATTER_REGEX.sub("\n\t-> ", record.msg)
