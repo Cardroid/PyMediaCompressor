@@ -102,20 +102,23 @@ def main():
 
     parser = argparse.ArgumentParser(description="미디어를 압축 인코딩합니다.")
 
-    parser.add_argument("--log-mode", choices=["c", "f", "cf", "console", "file", "consolefile"], dest="log_mode", default="consolefile", help="로그 출력 모드 설정")
     parser.add_argument("--log-level", choices=log.LOGLEVEL_DICT.keys(), dest="log_level", default="info", help="로그 레벨 설정")
+    parser.add_argument("--log-mode", choices=["c", "f", "cf", "console", "file", "consolefile"], dest="log_mode", default="consolefile", help="로그 출력 모드 설정")
+    parser.add_argument("--log-path", dest="log_path", default="", help="로그 출력 모드 설정")
     parser.add_argument("-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 또는 디렉토리 경로")
     parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
-    parser.add_argument("--view-source", dest="view_source", action="store_true", help="입력된 경로에서 감지된 소스파일 목록")
+    parser.add_argument("-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐경우, 출력파일이 삭제됩니다.")
 
     args = vars(parser.parse_args())
 
-    logger = log.get_logger(
-        name=f"{__name__}.command",
-        logLevel=log.LOGLEVEL_DICT[args["log_level"]],
-        useConsole=args["log_mode"] in ["c", "cf", "console", "consolefile"],
-        useRotatingfile=args["log_mode"] in ["f", "cf", "file", "consolefile"],
-    )
+    log.SETTINGS["level"] = log.LOGLEVEL_DICT[args["log_level"].lower()]
+    log.SETTINGS["use_console"] = args["log_mode"] in ["c", "cf", "console", "consolefile"]
+    log.SETTINGS["use_rotatingfile"] = args["log_mode"] in ["f", "cf", "file", "consolefile"]
+
+    if args["log_path"] != "" and not args["log_path"].isspace():
+        log.SETTINGS["dir"] = args["log_path"]
+
+    logger = log.get_logger(name=f"{__name__}.command")
 
     logger.info("** 인코딩 작업 시작 **")
     logger.debug(f"입력 인수: {args}")
