@@ -7,11 +7,13 @@ from typing import List
 from const import DEMUXER_FILE_EXT_LIST
 
 
-def get_media_files(path: str, useRealpath=False, useFilter=False) -> List[str]:
+def get_media_files(path: str, useRealpath=False, useMediaExtFilter=False) -> List[str]:
     """경로에 해당하는 미디어 파일 및 폴더 내의 모든 미디어 파일을 가져옵니다.
 
     Args:
         path (str): 경로
+        useRealpath (bool, optional): 절대 경로를 사용합니다. Defaults to False.
+        useMediaExtFilter (bool, optional): ffmpeg에서 디먹싱 가능한 확장자 목록으로 필터링합니다. Defaults to False.
 
     Returns:
         List[str]: 파일의 목록을 반환합니다.
@@ -24,7 +26,7 @@ def get_media_files(path: str, useRealpath=False, useFilter=False) -> List[str]:
         return [path]
     elif os.path.isdir(path):
         path = os.path.join(path, "**")
-        return list(filter(lambda p: os.path.isfile(p) and (not useFilter or os.path.splitext(p)[1] in DEMUXER_FILE_EXT_LIST), glob(path, recursive=True)))
+        return list(filter(lambda p: os.path.isfile(p) and (not useMediaExtFilter or os.path.splitext(p)[1] in DEMUXER_FILE_EXT_LIST), glob(path, recursive=True)))
     else:
         return []
 
@@ -38,6 +40,8 @@ def get_MD5_hash(filepath: str) -> str:
     Returns:
         str: MD5 해시값
     """
+
+    assert os.path.isfile(filepath), "파일이 존재하지 않습니다."
 
     hasher = hashlib.md5()
 
