@@ -107,7 +107,7 @@ def main():
 
     parser.add_argument("--log-level", choices=log.LOGLEVEL_DICT.keys(), dest="log_level", default="info", help="로그 레벨 설정")
     parser.add_argument("--log-mode", choices=["c", "f", "cf", "console", "file", "consolefile"], dest="log_mode", default="consolefile", help="로그 출력 모드 설정")
-    parser.add_argument("--log-path", dest="log_path", default="", help="로그 출력 모드 설정")
+    parser.add_argument("--log-path", dest="log_path", default=log.SETTINGS["dir"], help="로그 출력 모드 설정")
     parser.add_argument("-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 또는 디렉토리 경로")
     parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
     parser.add_argument("-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐경우, 출력파일이 삭제됩니다.")
@@ -121,7 +121,7 @@ def main():
     if args["log_path"] != "" and not args["log_path"].isspace():
         log.SETTINGS["dir"] = args["log_path"]
 
-    logger = log.get_logger(name=f"{__name__}.command")
+    logger = log.get_logger(name=f"{os.path.splitext(os.path.basename(__file__))[0]}.main")
 
     logger.info("** 인코딩 작업 시작 **")
     logger.debug(f"입력 인수: {args}")
@@ -159,3 +159,7 @@ def main():
     output_dirpath = args["output"]
     logger.info(f"출력 디렉토리: {output_dirpath}")
     os.makedirs(output_dirpath, exist_ok=True)
+
+
+if __name__ == "__main__":
+    main()
