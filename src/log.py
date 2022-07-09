@@ -2,6 +2,7 @@ import os
 import logging
 import logging.handlers
 import logging.config
+import re
 from typing import Dict
 import yaml
 
@@ -87,7 +88,10 @@ def get_default_config() -> Dict:
             "detail": {"format": "%(asctime)s %(levelname)-8s [%(name)s] [%(thread)d][%(filename)s:%(lineno)d] - %(message)s", "datefmt": "%Y-%m-%d %H:%M:%S"},
         },
         "handlers": {
-            "console": {"()": "logging.StreamHandler", "formatter": "colored_console"},
+            "console": {
+                "()": "logging.StreamHandler",
+                "formatter": "colored_console",
+            },
             "file": {
                 "()": "logging.handlers.RotatingFileHandler",
                 "formatter": "detail",
@@ -136,15 +140,51 @@ def root_logger_setup():
 
     logging.config.dictConfig(config)
 
+    for hdlr in logging.root.handlers:
+        hdlr_name = hdlr.get_name()
+        if hdlr_name.startswith("console"):
+            hdlr.addFilter(HandlerDestFilter(mode="console"))
+        elif hdlr_name.startswith("file"):
+            hdlr.addFilter(HandlerDestFilter(mode="file"))
+
     logger = logging.getLogger("log")
 
     if is_config_load_from_file:
         logger.debug(f"설정 파일 로드 완료")
     elif exception != None:
-        logger.warning(f"설정 파일 로드 오류, 기본 설정 사용됨 \n\t{exception}")
+        logger.warning(f"설정 파일 로드 오류, 기본 설정 사용됨 \n{exception}")
     else:
         logger.debug(f"기본 설정 로드 완료")
 
     if not utils.is_str_empty_or_space(SETTINGS["config_filepath"]):
         save_config(config, SETTINGS["config_filepath"])
         logger.debug(f"설정 파일 저장 완료")
+
+
+class HandlerDestFilter(logging.Filter):
+    LINE_FORMATTER_REGEX = re.compile(r"\n(?!\t-> )")
+    MODE_CONSOLE = "console"
+    MODE_FILE = "file"
+
+    def __init__(self, mode: str, name: str = "") -> None:
+        super().__init__(name)
+
+        assert mode in [self.MODE_CONSOLE, self.MODE_FILE], f"지원하지 않는 mode 입니다."
+
+        self.mode = mode
+
+    def filter(self, record):
+        self._format_line(record=record)
+
+        if len(record.args) == 0:
+            return True
+
+        dest = record.args.get("dest", None)
+        if not utils.is_str_empty_or_space(dest):
+            if (dest == self.MODE_CONSOLE and self.mode == self.MODE_CONSOLE) or (dest == self.MODE_FILE and self.mode == self.MODE_FILE):
+                return True
+            return False
+        return True
+
+    def _format_line(self, record: logging.LogRecord):
+        record.msg = self.LINE_FORMATTER_REGEX.sub("\n\t-> ", record.msg)

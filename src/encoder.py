@@ -160,7 +160,7 @@ def main():
         if len(detected_fileinfos) > 0:
             input_files.append({"target": input_filepath, "files": detected_fileinfos})
 
-    logger.debug("입력 소스파일: \n" + pformat(input_files))
+    logger.debug("입력 소스파일: \n" + pformat(source_infos))
     logger.info(f"감지된 소스파일 수: {dupl_file_count + file_count}, 입력 소스파일 수: {file_count}, 중복 소스파일 수: {dupl_file_count}")
 
     output_dirpath = args["output"]
