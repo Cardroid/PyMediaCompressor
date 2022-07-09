@@ -1,6 +1,7 @@
 import os
 from glob import glob
 import hashlib
+import subprocess
 
 from typing import List
 
@@ -92,3 +93,13 @@ def is_str_empty_or_space(string: str) -> bool:
         return True
     else:
         return False
+
+def check_command_availability(command: str) -> bool:
+    try:
+        process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        process.communicate()
+        result = process.returncode == 0
+    except:
+        result = False
+
+    return result

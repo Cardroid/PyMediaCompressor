@@ -1,5 +1,6 @@
 import os
 import ffmpeg
+from tqdm import tqdm
 import log
 import utils
 
@@ -16,7 +17,7 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
         max_height (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
     """
 
-    logger = log.get_logger(name=f"{__name__}.command")
+    logger = log.get_logger(name=f"{os.path.splitext(os.path.basename(__file__))[0]}.main")
 
     probe = ffmpeg.probe(inputFilepath)
     video_stream = next((stream for stream in probe["streams"] if stream["codec_type"] == "video"), None)
@@ -125,6 +126,12 @@ def main():
 
     logger.info("** 인코딩 작업 시작 **")
     logger.debug(f"입력 인수: {args}")
+
+    if utils.check_command_availability("ffmpeg -version") and utils.check_command_availability("ffprobe -version"):
+        logger.debug("ffmpeg, ffprobe 동작 확인 완료")
+    else:
+        logger.critical("ffmpeg 또는 ffprobe 동작 확인 불가, 해당 프로그램은 ffmpeg 및 ffprobe가 필요합니다.")
+        return
 
     # 입력 소스 파일 추출 및 중복 제거
     file_count = 0
