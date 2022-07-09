@@ -38,8 +38,8 @@ def get_logger(name: str, dirpath="PyMediaCompressor_logs", logLevel=INFO, useCo
     logger.setLevel(logLevel)
 
     if useConsole:
-        emoji_console_handler = logging.StreamHandler()
-        emoji_console_handler.setFormatter(
+        colored_console_handler = logging.StreamHandler()
+        colored_console_handler.setFormatter(
             ColoredFormatter(
                 fmt="%(asctime)s %(log_color)s%(levelname)-8s%(reset)s [%(name)s] [%(filename)s:%(lineno)d] %(log_color)s%(message)s%(reset)s",
                 datefmt="%Y-%m-%d %H:%M:%S",
@@ -52,7 +52,7 @@ def get_logger(name: str, dirpath="PyMediaCompressor_logs", logLevel=INFO, useCo
                 },
             )
         )
-        logger.addHandler(emoji_console_handler)
+        logger.addHandler(colored_console_handler)
 
     if useRotatingfile:
         os.makedirs(dirpath, exist_ok=True)
