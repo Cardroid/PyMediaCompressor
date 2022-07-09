@@ -89,12 +89,31 @@ def overwrite_small_file(originFilepath: str, destinationFilepath: str, orginFil
 
 
 def is_str_empty_or_space(string: str) -> bool:
+    """입력된 문자열이 비어있거나, 공백 또는 None 인지 확인합니다.
+
+    Args:
+        string (str): 검사할 문자열
+
+    Returns:
+        bool: 문자열이 비어있거나, 공백 또는 None일 경우 True, 아닐경우 False를 반환합니다.
+    """
+
     if string == None or string == "" or string.isspace():
         return True
     else:
         return False
 
+
 def check_command_availability(command: str) -> bool:
+    """해당 명령이가 커맨드 라인에서 올바르게 종료되는지 체크합니다.
+
+    Args:
+        command (str): 실행할 명령어
+
+    Returns:
+        bool: 프로세스가 올바르게 종료되었을 경우 True, 아닐경우 False를 반환합니다.
+    """
+
     try:
         process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         process.communicate()
