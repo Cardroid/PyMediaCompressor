@@ -3,8 +3,9 @@ import logging
 import logging.handlers
 import logging.config
 from typing import Dict
-from colorlog import ColoredFormatter
 import yaml
+
+import utils
 
 # 로그 레벨 정의
 CRITICAL = logging.CRITICAL
@@ -40,6 +41,7 @@ def get_logger(name: str, logLevel: int = -1) -> logging.Logger:
 
     Args:
         name (str): 로거 이름
+        logLevel (int, optional): 출력 로그 레벨. Default value is the value of SETTINGS.
 
     Returns:
         logging.Logger: 로거
@@ -109,7 +111,7 @@ def get_default_config() -> Dict:
 def save_config(config: Dict, filepath: str):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, "w", encoding="utf-8") as f:
-        yaml.dump(config, f, encoding="utf-8")
+        yaml.dump(config, f, indent=4, encoding="utf-8")
 
 
 def load_config(filepath: str) -> Dict:
@@ -119,19 +121,30 @@ def load_config(filepath: str) -> Dict:
 
 
 def root_logger_setup():
+    is_config_load_from_file = False
     exception = None
 
-    try:
-        config = load_config(SETTINGS["config_filepath"])
-    except Exception as ex:
-        exception = ex
+    if not utils.is_str_empty_or_space(SETTINGS["config_filepath"]):
+        try:
+            config = load_config(SETTINGS["config_filepath"])
+            is_config_load_from_file = True
+        except Exception as ex:
+            exception = ex
+
+    if not is_config_load_from_file:
         config = get_default_config()
 
     logging.config.dictConfig(config)
 
     logger = logging.getLogger("log")
 
-    if exception != None:
+    if is_config_load_from_file:
+        logger.debug(f"설정 파일 로드 완료")
+    elif exception != None:
         logger.warning(f"설정 파일 로드 오류, 기본 설정 사용됨 \n\t{exception}")
     else:
-        logger.debug(f"설정 파일 로드 완료")
+        logger.debug(f"기본 설정 로드 완료")
+
+    if not utils.is_str_empty_or_space(SETTINGS["config_filepath"]):
+        save_config(config, SETTINGS["config_filepath"])
+        logger.debug(f"설정 파일 저장 완료")
