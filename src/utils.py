@@ -31,11 +31,12 @@ def get_media_files(path: str, useRealpath=False, useMediaExtFilter=False) -> Li
         return []
 
 
-def get_MD5_hash(filepath: str) -> str:
+def get_MD5_hash(filepath: str, blockSize: int = 65536) -> str:
     """파일의 MD5 해시값을 구합니다.
 
     Args:
         filepath (str): 파일 경로
+        blockSize (int, optional): 한 번에 읽어올 파일의 블록 크기
 
     Returns:
         str: MD5 해시값
@@ -46,7 +47,7 @@ def get_MD5_hash(filepath: str) -> str:
     hasher = hashlib.md5()
 
     with open(filepath, "rb") as f:
-        for byte_block in iter(lambda: f.read(65536), b""):
+        for byte_block in iter(lambda: f.read(blockSize), b""):
             hasher.update(byte_block)
         return hasher.hexdigest()
 
