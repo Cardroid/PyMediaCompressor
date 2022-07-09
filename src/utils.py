@@ -98,10 +98,7 @@ def is_str_empty_or_space(string: str) -> bool:
         bool: 문자열이 비어있거나, 공백 또는 None일 경우 True, 아닐경우 False를 반환합니다.
     """
 
-    if string == None or string == "" or string.isspace():
-        return True
-    else:
-        return False
+    return string == None or string == "" or string.isspace()
 
 
 def check_command_availability(command: str) -> bool:
