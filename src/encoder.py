@@ -6,22 +6,25 @@ import utils
 PROCESSER_NAME = "Automatic media compression processed"
 
 
-def media_compress_encode(inputFilepath: str, outputDirpath: str, isForce=False, maxHeight=1440):
+def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False, maxHeight=1440):
     """미디어를 압축합니다.
 
     Args:
         input_filepath (str): 미디어 파일 경로
-        output_dirpath (str): 출력 디렉토리 경로
+        output_dirpath (str): 출력 파일 경로
         is_force (bool, optional): 이미 처리된 미디어 파일을 강제적으로 재처리합니다. Defaults to False.
         max_height (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
     """
+
+    logger = log.get_logger(name=f"{__name__}.command")
 
     probe = ffmpeg.probe(inputFilepath)
     video_stream = next((stream for stream in probe["streams"] if stream["codec_type"] == "video"), None)
 
     is_only_audio = video_stream == None
 
-    os.makedirs(outputDirpath, exist_ok=True)
+    output_dirpath = os.path.dirname(outputFilepath)
+    os.makedirs(output_dirpath, exist_ok=True)
 
     ffmpeg_global_args = {}
 
@@ -38,7 +41,7 @@ def media_compress_encode(inputFilepath: str, outputDirpath: str, isForce=False,
         if height > maxHeight:
             ffmpeg_global_args["vf"] = f"scale=-1:{maxHeight}"
 
-    output_filepath = f"{os.path.join(outputDirpath, os.path.splitext(os.path.basename(inputFilepath))[0])}.{ext}"
+    output_filepath = f"{os.path.join(output_dirpath, os.path.splitext(os.path.basename(inputFilepath))[0])}.{ext}"
     ffmpeg_global_args["filename"] = output_filepath
     ffmpeg_global_args["format"] = format
 
