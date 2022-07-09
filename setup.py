@@ -6,6 +6,7 @@ required_packages = [
     "tqdm",
     "ffmpeg-python==0.2.0",
     "colorlog==6.6.0",
+    "pyyaml==6.0",
 ]
 
 setuptools.setup(
