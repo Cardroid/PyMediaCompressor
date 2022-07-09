@@ -71,7 +71,7 @@ def get_default_config() -> Dict:
         "disable_existing_loggers": False,
         "formatters": {
             "colored_console": {
-                "class": "colorlog.ColoredFormatter",
+                "()": "colorlog.ColoredFormatter",
                 "format": "%(asctime)s %(log_color)s%(levelname)-8s%(reset)s [%(name)s] [%(thread)d][%(filename)s:%(lineno)d] %(log_color)s%(message)s%(reset)s",
                 "datefmt": "%Y-%m-%d %H:%M:%S",
                 "log_colors": {
@@ -85,9 +85,9 @@ def get_default_config() -> Dict:
             "detail": {"format": "%(asctime)s %(levelname)-8s [%(name)s] [%(thread)d][%(filename)s:%(lineno)d] - %(message)s", "datefmt": "%Y-%m-%d %H:%M:%S"},
         },
         "handlers": {
-            "console": {"class": "logging.StreamHandler", "formatter": "colored_console"},
+            "console": {"()": "logging.StreamHandler", "formatter": "colored_console"},
             "file": {
-                "class": "logging.handlers.RotatingFileHandler",
+                "()": "logging.handlers.RotatingFileHandler",
                 "formatter": "detail",
                 "filename": os.path.join(SETTINGS["dir"], "output.log"),
                 "maxBytes": 20 * 1024 * 1024,  # 20MB
