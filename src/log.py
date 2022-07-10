@@ -4,7 +4,8 @@ import logging
 import logging.handlers
 import logging.config
 import re
-from typing import Dict
+from typing import Dict, Union
+import colorlog
 
 import utils
 
@@ -36,6 +37,14 @@ class LogDestination(Flag):
 
     def is_flag(self, item: Enum) -> bool:
         return (self.value & item.value) != 0
+
+    @classmethod
+    def has_value(cls, value: int) -> bool:
+        return value in cls._value2member_map_
+
+    @classmethod
+    def has_name(cls, name: str) -> bool:
+        return name in cls._member_map_
 
 
 # 전역 설정
@@ -87,12 +96,28 @@ def get_default_config() -> Dict:
     if SETTINGS["use_rotatingfile"]:
         using_root_handlers.append("file")
 
+    get_fullname = lambda c: c.__qualname__ if (module := c.__module__) == "builtins" else module + "." + c.__qualname__
+
     config = {
         "version": 1,
         "disable_existing_loggers": False,
+        "filters": {
+            "dest_console_filter": {
+                "()": get_fullname(HandlerDestFilter),
+                "mode": LogDestination.CONSOLE.name,
+            },
+            "dest_file_filter": {
+                "()": get_fullname(HandlerDestFilter),
+                "mode": LogDestination.FILE.name,
+            },
+        },
         "formatters": {
+            "detail": {
+                "format": "%(asctime)s %(levelname)-8s [%(name)s] [%(thread)d][%(filename)s:%(lineno)d] - %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S",
+            },
             "colored_console": {
-                "()": "colorlog.ColoredFormatter",
+                "()": get_fullname(colorlog.ColoredFormatter),
                 "format": "%(asctime)s %(log_color)s%(levelname)-8s%(reset)s [%(name)s] [%(thread)d][%(filename)s:%(lineno)d] %(log_color)s%(message)s%(reset)s",
                 "datefmt": "%Y-%m-%d %H:%M:%S",
                 "log_colors": {
@@ -103,16 +128,17 @@ def get_default_config() -> Dict:
                     "CRITICAL": "bold_red,bg_white",
                 },
             },
-            "detail": {"format": "%(asctime)s %(levelname)-8s [%(name)s] [%(thread)d][%(filename)s:%(lineno)d] - %(message)s", "datefmt": "%Y-%m-%d %H:%M:%S"},
         },
         "handlers": {
             "console": {
-                "()": "logging.StreamHandler",
+                "()": get_fullname(logging.StreamHandler),
                 "formatter": "colored_console",
+                "filters": ["dest_console_filter"],
             },
             "file": {
-                "()": "logging.handlers.RotatingFileHandler",
+                "()": get_fullname(logging.handlers.RotatingFileHandler),
                 "formatter": "detail",
+                "filters": ["dest_file_filter"],
                 "filename": os.path.join(SETTINGS["dir"], "output.log"),
                 "maxBytes": 20 * 1024 * 1024,  # 20MB
                 "backupCount": 10,
@@ -146,12 +172,6 @@ def root_logger_setup():
 
     logging.config.dictConfig(config)
 
-    for hdlr in logging.root.handlers:
-        if (hdlr_name := hdlr.get_name()).startswith("console"):
-            hdlr.addFilter(HandlerDestFilter(mode=LogDestination.CONSOLE))
-        elif hdlr_name.startswith("file"):
-            hdlr.addFilter(HandlerDestFilter(mode=LogDestination.FILE))
-
     logger = logging.getLogger("log")
 
     if is_config_load_from_file:
@@ -169,14 +189,20 @@ def root_logger_setup():
 class HandlerDestFilter(logging.Filter):
     LINE_FORMATTER_REGEX = re.compile(r"\n(?!\t-> )")
 
-    def __init__(self, name: str = "", mode: LogDestination = LogDestination.ALL) -> None:
+    def __init__(self, name: str = "", mode: Union[int, str, LogDestination] = LogDestination.ALL) -> None:
         super().__init__(name)
 
-        assert mode in LogDestination, f"지원하지 않는 mode 입니다."
+        if isinstance(mode, int):
+            assert LogDestination.has_value(mode), f"지원하지 않는 mode 입니다."
+            self.mode = LogDestination(mode)
+        elif isinstance(mode, str):
+            assert LogDestination.has_name(mode), f"지원하지 않는 mode 입니다."
+            self.mode = LogDestination[mode]
+        else:
+            assert mode in LogDestination, f"지원하지 않는 mode 입니다."
+            self.mode = mode
 
-        self.mode = mode
-
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord):
         self._format_line(record=record)
         return self.mode.is_flag(dest) if len(record.args) > 0 and isinstance(dest := record.args.get("dest", None), LogDestination) else self.mode.is_flag(LogDest)
 
