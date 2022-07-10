@@ -5,7 +5,6 @@ import logging.handlers
 import logging.config
 import re
 from typing import Dict
-import yaml
 
 import utils
 
@@ -131,24 +130,13 @@ def get_default_config() -> Dict:
     return config
 
 
-def save_config(config: Dict, filepath: str):
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    with open(filepath, "w", encoding="utf-8") as f:
-        yaml.dump(config, f, indent=4, encoding="utf-8")
-
-
-def load_config(filepath: str) -> Dict:
-    with open(filepath, "r", encoding="utf-8") as f:
-        return yaml.load(f, Loader=yaml.FullLoader)
-
-
 def root_logger_setup():
     is_config_load_from_file = False
     exception = None
 
     if not utils.is_str_empty_or_space(SETTINGS["config_filepath"]):
         try:
-            config = load_config(SETTINGS["config_filepath"])
+            config = utils.load_config(SETTINGS["config_filepath"])
             is_config_load_from_file = True
         except Exception as ex:
             exception = ex
@@ -174,7 +162,7 @@ def root_logger_setup():
         logger.debug(f"기본 설정 로드 완료")
 
     if not utils.is_str_empty_or_space(SETTINGS["config_filepath"]):
-        save_config(config, SETTINGS["config_filepath"])
+        utils.save_config(config, SETTINGS["config_filepath"])
         logger.debug(f"설정 파일 저장 완료")
 
 

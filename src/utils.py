@@ -2,8 +2,8 @@ import os
 from glob import glob
 import hashlib
 import subprocess
-
-from typing import List
+from typing import Dict, List
+import yaml
 
 from const import DEMUXER_FILE_EXT_LIST
 
@@ -119,3 +119,14 @@ def check_command_availability(command: str) -> bool:
         result = False
 
     return result
+
+
+def save_config(config: Dict, filepath: str):
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, "w", encoding="utf-8") as f:
+        yaml.dump(config, f, Dumper=yaml.Dumper, width=100)
+
+
+def load_config(filepath: str) -> Dict:
+    with open(filepath, "r", encoding="utf-8") as f:
+        return yaml.load(f, Loader=yaml.FullLoader)
