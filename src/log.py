@@ -1,4 +1,5 @@
 import os
+from enum import Enum, Flag, auto, unique
 import logging
 import logging.handlers
 import logging.config
@@ -23,6 +24,21 @@ LOGLEVEL_DICT = {
     "debug": DEBUG,
 }
 
+
+@unique
+class LogDestination(Flag):
+    CONSOLE = auto()
+    FILE = auto()
+    ALL = CONSOLE | FILE
+
+    @staticmethod
+    def is_flag(item1: Enum, item2: Enum) -> bool:
+        return (item1.value & item2.value) != 0
+
+    def is_flag(self, item: Enum) -> bool:
+        return (self.value & item.value) != 0
+
+
 # 전역 설정
 # level (int, optional): 출력 로그 레벨. Defaults to INFO.
 # dir (str, optional): 로그파일 저장 디렉토리 경로. Defaults to "logs".
@@ -35,6 +51,9 @@ SETTINGS = {
     "use_console": True,
     "use_rotatingfile": True,
 }
+
+# 전역 로깅 위치 설정
+LogDest = LogDestination.ALL
 
 
 def get_logger(name: str, logLevel: int = -1) -> logging.Logger:
@@ -141,9 +160,9 @@ def root_logger_setup():
 
     for hdlr in logging.root.handlers:
         if (hdlr_name := hdlr.get_name()).startswith("console"):
-            hdlr.addFilter(HandlerDestFilter(mode="console"))
+            hdlr.addFilter(HandlerDestFilter(mode=LogDestination.CONSOLE))
         elif hdlr_name.startswith("file"):
-            hdlr.addFilter(HandlerDestFilter(mode="file"))
+            hdlr.addFilter(HandlerDestFilter(mode=LogDestination.FILE))
 
     logger = logging.getLogger("log")
 
@@ -161,26 +180,17 @@ def root_logger_setup():
 
 class HandlerDestFilter(logging.Filter):
     LINE_FORMATTER_REGEX = re.compile(r"\n(?!\t-> )")
-    MODE_CONSOLE = "console"
-    MODE_FILE = "file"
 
-    def __init__(self, mode: str, name: str = "") -> None:
+    def __init__(self, name: str = "", mode: LogDestination = LogDestination.ALL) -> None:
         super().__init__(name)
 
-        assert mode in [self.MODE_CONSOLE, self.MODE_FILE], f"지원하지 않는 mode 입니다."
+        assert mode in LogDestination, f"지원하지 않는 mode 입니다."
 
         self.mode = mode
 
     def filter(self, record):
         self._format_line(record=record)
-
-        if len(record.args) == 0:
-            return True
-
-        if not utils.is_str_empty_or_space(dest := record.args.get("dest", None)):
-            return (dest == self.mode == self.MODE_CONSOLE) or (dest == self.mode == self.MODE_FILE)
-        else:
-            return True
+        return self.mode.is_flag(dest) if len(record.args) > 0 and isinstance(dest := record.args.get("dest", None), LogDestination) else self.mode.is_flag(LogDest)
 
     def _format_line(self, record: logging.LogRecord):
         record.msg = self.LINE_FORMATTER_REGEX.sub("\n\t-> ", record.msg)
