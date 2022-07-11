@@ -153,6 +153,8 @@ def main():
     parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
     parser.add_argument("-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐경우, 출력파일이 삭제됩니다.")
     parser.add_argument("-y", "--overwrite", dest="overwrite", action="store_true", help="출력 폴더에 같은 이름의 파일이 있을 경우, 덮어씁니다.")
+    parser.add_argument("-f", "--force", dest="force", action="store_false", help="이미 압축된 미디어 파일을 스킵하지 않고, 재압축합니다.")
+    parser.add_argument("--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다.")
 
     args = vars(parser.parse_args())
 
@@ -227,6 +229,7 @@ def main():
 
     is_replace = args["replace"]
     is_overwrite = args["overwrite"]
+    is_force = args["force"]
 
     for source_info in tqdm(source_infos):
         logger.debug(f"현재 작업 소스 정보: \n{pformat(source_info)}")
@@ -251,7 +254,7 @@ def main():
                     output_filepath = f"{temp_filename} ({(count := count + 1)}){ext}"
                 fileinfo["output_file"] = output_filepath
 
-            media_compress_encode(inputFilepath=fileinfo["input_file"], outputFilepath=fileinfo["output_file"])
+            media_compress_encode(inputFilepath=fileinfo["input_file"], outputFilepath=fileinfo["output_file"], isForce=is_force, maxHeight=args["height"])
 
             if not os.path.isfile(fileinfo["output_file"]):
                 fileinfo["state"] = FileTaskState.ERROR
