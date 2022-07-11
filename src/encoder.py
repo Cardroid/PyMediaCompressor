@@ -93,6 +93,8 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
         logger.info("이미 처리된 미디어입니다.")
         if isForce:
             logger.warning(f"강제로 재인코딩을 실시합니다... is_force: {isForce}")
+        else:
+            return True
 
     audio_stream_info = None
 
@@ -149,7 +151,7 @@ def main():
     parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
     parser.add_argument("-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐경우, 출력파일이 삭제됩니다.")
     parser.add_argument("-y", "--overwrite", dest="overwrite", action="store_true", help="출력 폴더에 같은 이름의 파일이 있을 경우, 덮어씁니다.")
-    parser.add_argument("-f", "--force", dest="force", action="store_false", help="이미 압축된 미디어 파일을 스킵하지 않고, 재압축합니다.")
+    parser.add_argument("-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 스킵하지 않고, 재압축합니다.")
     parser.add_argument("--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다.")
 
     args = vars(parser.parse_args())
