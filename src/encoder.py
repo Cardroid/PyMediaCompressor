@@ -86,7 +86,7 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
         if comment == "":
             comment = PROCESSER_NAME
         else:
-            comment = f"{comment}\n{PROCESSER_NAME}"
+            comment = f"{comment}\\n{PROCESSER_NAME}"
         ffmpeg_global_args["metadata"] = f'"comment={comment}"'
     else:
         # TODO: 로깅 모듈 통합 필요
@@ -168,8 +168,23 @@ def main():
     logger.info("** 프로그램 시작점 **")
     logger.debug(f"입력 인수: {args}")
 
-    if utils.check_command_availability("ffmpeg -version") and utils.check_command_availability("ffprobe -version"):
-        logger.debug("ffmpeg, ffprobe 동작 확인 완료")
+    if (ffmpeginfo := utils.check_command_availability("ffmpeg -version"))[0] and (ffprobeinfo := utils.check_command_availability("ffprobe -version"))[0]:
+        if logger.isEnabledFor(log.DEBUG):
+            ffmpeginfo_str = pformat(
+                {
+                    "exit_success": ffmpeginfo[0],
+                    "stdout": utils.string_decode(ffmpeginfo[1]).splitlines(),
+                    "stderr": utils.string_decode(ffmpeginfo[2]).splitlines(),
+                }
+            )
+            ffprobeinfo_str = pformat(
+                {
+                    "exit_success": ffprobeinfo[0],
+                    "stdout": utils.string_decode(ffprobeinfo[1]).splitlines(),
+                    "stderr": utils.string_decode(ffprobeinfo[2]).splitlines(),
+                }
+            )
+            logger.debug(f"ffmpeg, ffprobe 동작 확인 완료\nffmpeg 정보: {ffmpeginfo_str}\nffprobe 정보: {ffprobeinfo_str}", {"dest": log.LogDestination.FILE})
     else:
         logger.critical("ffmpeg 또는 ffprobe 동작 확인 불가, 해당 프로그램은 ffmpeg 및 ffprobe가 필요합니다.")
         return

@@ -2,7 +2,8 @@ import os
 from glob import glob
 import hashlib
 import subprocess
-from typing import Dict, List
+import sys
+from typing import ByteString, Dict, List, Tuple
 import yaml
 
 from const import DEMUXER_FILE_EXT_LIST
@@ -101,7 +102,7 @@ def is_str_empty_or_space(string: str) -> bool:
     return string == None or string == "" or string.isspace()
 
 
-def check_command_availability(command: str) -> bool:
+def check_command_availability(command: str) -> Tuple[bool, str, str]:
     """해당 명령이가 커맨드 라인에서 올바르게 종료되는지 체크합니다.
 
     Args:
@@ -112,13 +113,13 @@ def check_command_availability(command: str) -> bool:
     """
 
     try:
-        process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        process.communicate()
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
         result = process.returncode == 0
     except:
         result = False
 
-    return result
+    return (result, stdout, stderr)
 
 
 def save_config(config: Dict, filepath: str):
@@ -130,3 +131,10 @@ def save_config(config: Dict, filepath: str):
 def load_config(filepath: str) -> Dict:
     with open(filepath, "r", encoding="utf-8") as f:
         return yaml.load(f, Loader=yaml.FullLoader)
+
+
+def string_decode(byteString: bytes, encoding="utf-8"):
+    string = byteString.decode(encoding=encoding)
+    if sys.platform == "win32":
+        string = string.replace("\r\n", "\n")
+    return string
