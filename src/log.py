@@ -75,6 +75,8 @@ def get_logger(name: str, logLevel: int = -1) -> logging.Logger:
         logging.Logger: 로거
     """
 
+    os.makedirs(SETTINGS["dir"], exist_ok=True)
+
     if not logging.root.hasHandlers():
         root_logger_setup()
 
@@ -88,8 +90,6 @@ def get_logger(name: str, logLevel: int = -1) -> logging.Logger:
 
 
 def get_default_config() -> Dict:
-    os.makedirs(SETTINGS["dir"], exist_ok=True)
-
     using_root_handlers = []
     if SETTINGS["use_console"]:
         using_root_handlers.append("console")
