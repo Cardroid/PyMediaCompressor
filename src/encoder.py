@@ -76,7 +76,7 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
     comment = ""
 
     for c in (tags.get("comment", ""), tags.get("COMMENT", "")):
-        if c != "" or not c.isspace():
+        if not utils.is_str_empty_or_space(c):
             comment = c
             break
 
@@ -86,17 +86,13 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
         if comment == "":
             comment = PROCESSER_NAME
         else:
-            comment = f"{comment}\\n{PROCESSER_NAME}"
-        ffmpeg_global_args["metadata"] = f'"comment={comment}"'
+            comment = f"{comment}\n{PROCESSER_NAME}"
+        ffmpeg_global_args["metadata"] = f"comment={comment}"
     else:
-        # TODO: 로깅 모듈 통합 필요
         # * 영상이 이미 처리된 경우
-        print("INFO: 이미 처리된 미디어입니다.", end="")
+        logger.info("이미 처리된 미디어입니다.")
         if isForce:
-            print(f"\nINFO: 강제로 재인코딩을 실시합니다... is_force: {isForce}")
-        else:
-            print(".. skip")
-            return
+            logger.warning(f"강제로 재인코딩을 실시합니다... is_force: {isForce}")
 
     audio_stream_info = None
 
@@ -118,7 +114,7 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
 
     stream = ffmpeg._ffmpeg.global_args(stream, "-hide_banner")
 
-    logger.debug(f"ffmpeg {' '.join(ffmpeg.get_args(stream))}")
+    logger.debug(f"ffmpeg Arguments: \n[{' '.join(ffmpeg.get_args(stream))}]")
 
     stream = ffmpeg.overwrite_output(stream)
 
