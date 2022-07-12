@@ -1,8 +1,10 @@
 import os
 from enum import Enum, auto, unique
+from pprint import pformat
 from queue import Queue
 import shutil
 from threading import Thread
+from typing import List
 import bitmath
 import ffmpeg
 from tqdm import tqdm
@@ -31,7 +33,7 @@ class FileTaskState(Enum):
         return name in cls._member_map_
 
 
-def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False, maxHeight=1440, useProgressbar=False, leave=True) -> FileTaskState:
+def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False, maxHeight=1440, removeErrorOutput=True, useProgressbar=False, leave=True) -> FileTaskState:
     """미디어를 압축합니다.
 
     Args:
@@ -39,6 +41,7 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
         output_dirpath (str): 출력 파일 경로
         is_force (bool, optional): 이미 처리된 미디어 파일을 강제적으로 재처리합니다. Defaults to False.
         max_height (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
+        removeErrorOutput (bool, optional): 정상적으로 압축하지 못했을 경우 출력 파일을 삭제합니다. Defaults to True.
         useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
         leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
 
@@ -127,16 +130,18 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
 
     stream = ffmpeg.overwrite_output(stream)
 
-    def msg_reader(queue: Queue):
-        from pprint import pformat
-
+    def msg_reader(queue: Queue, temp_msg_storage: List = None):
         total_duration = float(probe["format"]["duration"])
         bar = tqdm(total=round(total_duration, 2), leave=leave)
         info = {}
 
         for msg in iter(queue.get, None):
             if msg["type"] == "stderr":
-                logger.debug(f"ffmpeg output str: \n{pformat(msg)}")
+                if logger.isEnabledFor(log.DEBUG):
+                    logger.debug(f"ffmpeg output str: \n{pformat(msg)}")
+                if temp_msg_storage != None:
+                    temp_msg_storage.append(msg["msg"])
+
             elif msg["type"] == "stdout":
                 update_value = None
                 if "out_time_ms" in msg:
@@ -166,21 +171,28 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
 
         bar.close()
 
+    def error_output_check(result: FileTaskState):
+        if removeErrorOutput and result == FileTaskState.ERROR and os.path.isfile(ffmpeg_global_args["filename"]):
+            os.remove(ffmpeg_global_args["filename"])
+            logger.info(f"오류가 발생한 출력파일을 제거했습니다. Path: {ffmpeg_global_args['filename']}")
+        return result
+
     if useProgressbar:
         msg_queue = Queue()
+        temp_msg_storage = []
         try:
             process = progress.run_ffmpeg_process_with_msg_queue(stream, msg_queue)
             logger.debug(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
 
-            Thread(target=msg_reader, args=[msg_queue]).start()
+            Thread(target=msg_reader, args=[msg_queue, temp_msg_storage]).start()
 
             if process.wait() != 0:
                 raise Exception("프로세스가 올바르게 종료되지 않았습니다.")
 
             return FileTaskState.SUCCESS
         except Exception as err:
-            logger.error(f"미디어 처리 오류: \n{err}")
-            return FileTaskState.ERROR
+            logger.error(f"미디어 처리 오류: \n{pformat(temp_msg_storage)}\n{err}")
+            return error_output_check(FileTaskState.ERROR)
     else:
         logger.debug(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
 
@@ -190,7 +202,7 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
             return FileTaskState.SUCCESS
         except ffmpeg.Error as err:
             logger.error(utils.string_decode(err.stderr))
-            return FileTaskState.ERROR
+            return error_output_check(FileTaskState.ERROR)
 
 
 def get_output_fileext(filepath: str):
@@ -215,6 +227,7 @@ def main():
     parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
     parser.add_argument("-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐경우, 출력파일이 삭제됩니다.")
     parser.add_argument("-e", "--already_exists_mode", choices=["overwrite", "skip", "numbering"], dest="already_exists_mode", default="numbering", help="출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.")
+    parser.add_argument("-s", "--save_error_output", dest="save_error_output", action="store_true", help="오류가 발생한 출력물을 제거하지 않습니다.")
     parser.add_argument("-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 스킵하지 않고, 재압축합니다.")
     parser.add_argument("--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다.")
 
@@ -291,6 +304,7 @@ def main():
 
     is_replace = args["replace"]
     is_force = args["force"]
+    is_save_error_output = args["save_error_output"]
     already_exists_mode = args["already_exists_mode"]
 
     for source_info in tqdm(source_infos):
@@ -324,6 +338,7 @@ def main():
                 outputFilepath=fileinfo["output_file"],
                 isForce=is_force,
                 maxHeight=args["height"],
+                removeErrorOutput=not is_save_error_output,
                 useProgressbar=True,
                 leave=False,
             )
