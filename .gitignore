@@ -1,5 +1,9 @@
-PyEncoder_python/
+.vscode/
+PyMediaCompressor_python/
+PyMediaCompressor_logs/
+config/
 test/
+out/
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,python
