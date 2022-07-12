@@ -3,10 +3,10 @@ from glob import glob
 import hashlib
 import subprocess
 import sys
-from typing import ByteString, Dict, List, Tuple
+from typing import Dict, List, Tuple
 import yaml
 
-from const import DEMUXER_FILE_EXT_LIST
+from py_media_compressor.const import DEMUXER_FILE_EXT_LIST
 
 
 def get_media_files(path: str, useRealpath=False, useMediaExtFilter=False) -> List[str]:

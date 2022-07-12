@@ -9,9 +9,9 @@ import bitmath
 import ffmpeg
 from tqdm import tqdm
 
-from common import progress
-import log
-import utils
+from py_media_compressor.common import progress
+from py_media_compressor import log
+from py_media_compressor import utils
 
 PROCESSER_NAME = "Automatic media compression processed"
 

@@ -7,7 +7,7 @@ import re
 from typing import Dict, Union
 import colorlog
 
-import utils
+from py_media_compressor import utils
 
 # 로그 레벨 정의
 CRITICAL = logging.CRITICAL
