@@ -1,5 +1,4 @@
 from enum import Enum, auto, unique
-import os
 import ffmpeg
 from tqdm import tqdm
 import log
@@ -24,7 +23,6 @@ class FileTaskState(Enum):
         return name in cls._member_map_
 
 
-def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False, maxHeight=1440) -> bool:
     """미디어를 압축합니다.
 
     Args:
@@ -34,14 +32,12 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
         max_height (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
 
     Returns:
-        bool: 성공여부
     """
 
     logger = log.get_logger(name=f"{os.path.splitext(os.path.basename(__file__))[0]}.main")
 
     if not os.path.isfile(inputFilepath):
         logger.error(f"입력 파일이 존재하지 않습니다. Filepath: {inputFilepath}")
-        return False
 
     probe = ffmpeg.probe(inputFilepath)
     video_stream = next((stream for stream in probe["streams"] if stream["codec_type"] == "video"), None)
@@ -94,7 +90,6 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
         if isForce:
             logger.warning(f"강제로 재인코딩을 실시합니다... is_force: {isForce}")
         else:
-            return True
 
     audio_stream_info = None
 
@@ -120,13 +115,6 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
 
     stream = ffmpeg.overwrite_output(stream)
 
-    try:
-        _, stderr = ffmpeg.run(cmd="ffmpeg", stream_spec=stream, capture_stderr=True)
-        logger.info(utils.string_decode(stderr))
-    except ffmpeg.Error as err:
-        logger.error(utils.string_decode(err.stderr))
-
-    return True
 
 
 def get_output_fileext(filepath: str):
@@ -252,25 +240,9 @@ def main():
                     output_filepath = f"{temp_filename} ({(count := count + 1)}){ext}"
                 fileinfo["output_file"] = output_filepath
 
-            media_compress_encode(inputFilepath=fileinfo["input_file"], outputFilepath=fileinfo["output_file"], isForce=is_force, maxHeight=args["height"])
 
-            if not os.path.isfile(fileinfo["output_file"]):
-                fileinfo["state"] = FileTaskState.ERROR
-                logger.error(f"압축 처리를 완료했지만, 출력파일이 존재하지 않습니다. \nOutput Filepath: {fileinfo['output_file']}")
-            else:
-                fileinfo["state"] = FileTaskState.SUCCESS
-                fileinfo["output_md5_hash"] = utils.get_MD5_hash(fileinfo["output_file"])
 
-                logger.info(f"압축 처리 완료: \nOutput Filepath: {fileinfo['output_file']}\nOutput File MD5 Hash: {fileinfo['output_md5_hash']}")
 
-                if is_replace:
-                    os.replace(fileinfo["output_file"], output_filepath := f"{os.path.splitext(fileinfo['input_file'])[0]}{ext}")
-
-                    if os.path.splitext(fileinfo["input_file"])[1] != os.path.splitext(fileinfo["output_file"])[1]:
-                        os.remove(fileinfo["input_file"])
-
-                    fileinfo["output_file"] = output_filepath
-                    logger.info(f"덮어쓰기 완료: {fileinfo['output_file']}")
 
             logger.debug(f"처리완료 최종 파일 정보: \n{pformat(fileinfo)}")
 
