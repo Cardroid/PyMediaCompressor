@@ -112,14 +112,19 @@ def check_command_availability(command: str) -> Tuple[bool, str, str]:
         bool: 프로세스가 올바르게 종료되었을 경우 True, 아닐경우 False를 반환합니다.
     """
 
+    exception = None
+
     try:
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
-        result = process.returncode == 0
-    except:
+        result = process.wait() == 0
+    except Exception as ex:
+        stdout = ""
+        stderr = ""
+        exception = ex
         result = False
 
-    return (result, stdout, stderr)
+    return (result, stdout, stderr, exception)
 
 
 def save_config(config: Dict, filepath: str):
@@ -134,7 +139,9 @@ def load_config(filepath: str) -> Dict:
 
 
 def string_decode(byteString: bytes, encoding="utf-8"):
-    string = byteString.decode(encoding=encoding)
-    if sys.platform == "win32":
-        string = string.replace("\r\n", "\n")
-    return string.replace("\u3000", "　")
+    if isinstance(byteString, bytes):
+        string = byteString.decode(encoding=encoding)
+    else:
+        string = byteString
+
+    return string.replace("\r\n", "\n").replace("\u3000", "　")

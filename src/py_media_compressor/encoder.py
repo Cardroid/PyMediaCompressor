@@ -244,26 +244,25 @@ def main():
     logger.info("** 프로그램 시작점 **")
     logger.debug(f"입력 인수: {args}")
 
-    if (ffmpeginfo := utils.check_command_availability("ffmpeg -version"))[0] and (ffprobeinfo := utils.check_command_availability("ffprobe -version"))[0]:
+    for info in (utils.check_command_availability("ffmpeg -version"), utils.check_command_availability("ffprobe -version")):
+        if not info[0] or logger.isEnabledFor(log.DEBUG):
+            info_str = pformat(
+                {
+                    "exit_success": info[0],
+                    "stdout": utils.string_decode(info[1]).splitlines(),
+                    "stderr": utils.string_decode(info[2]).splitlines(),
+                    "exception": info[3],
+                }
+            )
+
+        if not info[0]:
+            logger.critical(f"ffmpeg 또는 ffprobe 동작 확인 불가, 해당 프로그램은 ffmpeg 및 ffprobe가 필요합니다.\nInfo: {info_str}")
+            return
+
         if logger.isEnabledFor(log.DEBUG):
-            ffmpeginfo_str = pformat(
-                {
-                    "exit_success": ffmpeginfo[0],
-                    "stdout": utils.string_decode(ffmpeginfo[1]).splitlines(),
-                    "stderr": utils.string_decode(ffmpeginfo[2]).splitlines(),
-                }
-            )
-            ffprobeinfo_str = pformat(
-                {
-                    "exit_success": ffprobeinfo[0],
-                    "stdout": utils.string_decode(ffprobeinfo[1]).splitlines(),
-                    "stderr": utils.string_decode(ffprobeinfo[2]).splitlines(),
-                }
-            )
-            logger.debug(f"ffmpeg, ffprobe 동작 확인 완료\nffmpeg 정보: {ffmpeginfo_str}\nffprobe 정보: {ffprobeinfo_str}", {"dest": log.LogDestination.FILE})
-    else:
-        logger.critical("ffmpeg 또는 ffprobe 동작 확인 불가, 해당 프로그램은 ffmpeg 및 ffprobe가 필요합니다.")
-        return
+            logger.debug(f"command 실행 가능 여부, 검사 정보: {info_str}")
+
+    logger.debug(f"ffmpeg, ffprobe 동작 확인 완료")
 
     # 입력 소스 파일 추출 및 중복 제거
     file_count = 0
