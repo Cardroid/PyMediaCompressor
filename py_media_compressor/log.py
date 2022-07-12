@@ -204,7 +204,11 @@ class HandlerDestFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord):
         self._format_line(record=record)
-        return self.mode.is_flag(dest) if len(record.args) > 0 and isinstance(dest := record.args.get("dest", None), LogDestination) else self.mode.is_flag(LogDest)
+        if len(record.args) > 0 and isinstance(dest := record.args.get("dest", None), LogDestination):
+            del record.args["dest"]
+            return self.mode.is_flag(dest)
+        else:
+            return self.mode.is_flag(LogDest)
 
     def _format_line(self, record: logging.LogRecord):
         record.msg = self.LINE_FORMATTER_REGEX.sub("\n\t-> ", record.msg)

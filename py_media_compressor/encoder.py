@@ -1,6 +1,13 @@
+import os
 from enum import Enum, auto, unique
+from queue import Queue
+import shutil
+from threading import Thread
+import bitmath
 import ffmpeg
 from tqdm import tqdm
+
+from core import progress
 import log
 import utils
 
@@ -11,6 +18,7 @@ PROCESSER_NAME = "Automatic media compression processed"
 class FileTaskState(Enum):
     INIT = auto()
     WAIT = auto()
+    SKIPPED = auto()
     SUCCESS = auto()
     ERROR = auto()
 
@@ -23,6 +31,7 @@ class FileTaskState(Enum):
         return name in cls._member_map_
 
 
+def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False, maxHeight=1440, useProgressbar=False, leave=True) -> FileTaskState:
     """미디어를 압축합니다.
 
     Args:
@@ -30,14 +39,18 @@ class FileTaskState(Enum):
         output_dirpath (str): 출력 파일 경로
         is_force (bool, optional): 이미 처리된 미디어 파일을 강제적으로 재처리합니다. Defaults to False.
         max_height (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
+        useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
+        leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
 
     Returns:
+        bool: 작업 완료 상태
     """
 
     logger = log.get_logger(name=f"{os.path.splitext(os.path.basename(__file__))[0]}.main")
 
     if not os.path.isfile(inputFilepath):
         logger.error(f"입력 파일이 존재하지 않습니다. Filepath: {inputFilepath}")
+        return FileTaskState.ERROR
 
     probe = ffmpeg.probe(inputFilepath)
     video_stream = next((stream for stream in probe["streams"] if stream["codec_type"] == "video"), None)
@@ -90,6 +103,7 @@ class FileTaskState(Enum):
         if isForce:
             logger.warning(f"강제로 재인코딩을 실시합니다... is_force: {isForce}")
         else:
+            return FileTaskState.SKIPPED
 
     audio_stream_info = None
 
@@ -111,10 +125,72 @@ class FileTaskState(Enum):
 
     stream = ffmpeg._ffmpeg.global_args(stream, "-hide_banner")
 
-    logger.debug(f"ffmpeg Arguments: \n[{' '.join(ffmpeg.get_args(stream))}]")
-
     stream = ffmpeg.overwrite_output(stream)
 
+    def msg_reader(queue: Queue):
+        from pprint import pformat
+
+        total_duration = float(probe["format"]["duration"])
+        bar = tqdm(total=round(total_duration, 2), leave=leave)
+        info = {}
+
+        for msg in iter(queue.get, None):
+            if msg["type"] == "stderr":
+                logger.debug(f"ffmpeg output str: \n{pformat(msg)}")
+            elif msg["type"] == "stdout":
+                update_value = None
+                if "out_time_ms" in msg:
+                    time = max(round(float(msg["out_time_ms"]) / 1000000.0, 2), 0)
+                    update_value = time - bar.n
+                elif "progress" in msg and msg["progress"] == "end":
+                    update_value = bar.total - bar.n
+
+                for key, value in msg.items():
+                    if key in ["frame", "fps", "total_size", "bitrate", "out_time", "speed", "dup_frames", "drop_frames"]:
+                        if key == "total_size":
+                            value = bitmath.best_prefix(int(value), system=bitmath.SI)
+                        elif key == "out_time":
+                            value = value.split(".")[0]
+                        elif key == "dup_frames" and value == "0":
+                            continue
+                        elif key == "drop_frames" and value == "0":
+                            continue
+
+                        info[key] = value
+
+                if update_value != None:
+                    bar.set_postfix(info, refresh=False)
+                    bar.update(update_value)
+                else:
+                    bar.set_postfix(info)
+
+        bar.close()
+
+    if useProgressbar:
+        msg_queue = Queue()
+        try:
+            process = progress.run_ffmpeg_process_with_msg_queue(stream, msg_queue)
+            logger.debug(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
+
+            Thread(target=msg_reader, args=[msg_queue]).start()
+
+            if process.wait() != 0:
+                raise Exception("프로세스가 올바르게 종료되지 않았습니다.")
+
+            return FileTaskState.SUCCESS
+        except Exception as err:
+            logger.error(f"미디어 처리 오류: \n{err}")
+            return FileTaskState.ERROR
+    else:
+        logger.debug(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
+
+        try:
+            _, stderr = ffmpeg.run(stream_spec=stream, capture_stdout=True, capture_stderr=True)
+            logger.info(utils.string_decode(stderr))
+            return FileTaskState.SUCCESS
+        except ffmpeg.Error as err:
+            logger.error(utils.string_decode(err.stderr))
+            return FileTaskState.ERROR
 
 
 def get_output_fileext(filepath: str):
@@ -138,7 +214,7 @@ def main():
     parser.add_argument("-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 및 디렉토리 경로")
     parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
     parser.add_argument("-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐경우, 출력파일이 삭제됩니다.")
-    parser.add_argument("-y", "--overwrite", dest="overwrite", action="store_true", help="출력 폴더에 같은 이름의 파일이 있을 경우, 덮어씁니다.")
+    parser.add_argument("-e", "--already_exists_mode", choices=["overwrite", "skip", "numbering"], dest="already_exists_mode", default="numbering", help="출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.")
     parser.add_argument("-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 스킵하지 않고, 재압축합니다.")
     parser.add_argument("--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다.")
 
@@ -214,8 +290,8 @@ def main():
     log.LogDest = log.LogDestination.FILE
 
     is_replace = args["replace"]
-    is_overwrite = args["overwrite"]
     is_force = args["force"]
+    already_exists_mode = args["already_exists_mode"]
 
     for source_info in tqdm(source_infos):
         logger.debug(f"현재 작업 소스 정보: \n{pformat(source_info)}")
@@ -232,17 +308,48 @@ def main():
 
             fileinfo["output_file"] = os.path.join(output_dirpath, f"{os.path.splitext(os.path.basename(fileinfo['input_file']))[0]}{ext}")
 
-            if not is_overwrite:
+            if already_exists_mode == "numbering":
                 count = 0
                 output_filepath = fileinfo["output_file"]
                 temp_filename = os.path.splitext(output_filepath)[0]
                 while os.path.isfile(output_filepath):
                     output_filepath = f"{temp_filename} ({(count := count + 1)}){ext}"
                 fileinfo["output_file"] = output_filepath
+            elif already_exists_mode == "skip" and os.path.isfile(fileinfo["output_file"]):
+                logger.info(f"이미 출력파일이 존재합니다... skipped.")
+                continue
 
+            fileinfo["state"] = media_compress_encode(
+                inputFilepath=fileinfo["input_file"],
+                outputFilepath=fileinfo["output_file"],
+                isForce=is_force,
+                maxHeight=args["height"],
+                useProgressbar=True,
+                leave=False,
+            )
 
+            if fileinfo["state"] == FileTaskState.ERROR:
+                logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다. \nState: {fileinfo['state']}\nOutput Filepath: {fileinfo['output_file']}")
+            elif (is_skipped := fileinfo["state"] == FileTaskState.SKIPPED) or fileinfo["state"] == FileTaskState.SUCCESS:
+                if not is_skipped:
+                    if is_replace:
+                        try:
+                            dest_filepath = f"{os.path.splitext(fileinfo['input_file'])[0]}{ext}"
+                            src_filepath = fileinfo["output_file"]
+                            fileinfo["output_file"] = dest_filepath
 
+                            shutil.move(src_filepath, dest_filepath)
 
+                            if os.path.splitext(fileinfo["input_file"])[1] != os.path.splitext(fileinfo["output_file"])[1]:
+                                os.remove(fileinfo["input_file"])
+
+                            logger.info(f"덮어쓰기 완료: {fileinfo['output_file']}")
+                        except Exception as ex:
+                            logger.error(f"원본 파일 덮어쓰기 실패: \n{ex}")
+
+                    fileinfo["output_md5_hash"] = utils.get_MD5_hash(fileinfo["output_file"])
+
+                    logger.info(f"작업 완료: \nState: {fileinfo['state']}\nOutput Filepath: {fileinfo['output_file']}\nOutput File MD5 Hash: {fileinfo['output_md5_hash']}")
 
             logger.debug(f"처리완료 최종 파일 정보: \n{pformat(fileinfo)}")
 

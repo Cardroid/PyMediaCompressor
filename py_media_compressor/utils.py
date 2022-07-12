@@ -137,4 +137,4 @@ def string_decode(byteString: bytes, encoding="utf-8"):
     string = byteString.decode(encoding=encoding)
     if sys.platform == "win32":
         string = string.replace("\r\n", "\n")
-    return string
+    return string.replace("\u3000", "　")

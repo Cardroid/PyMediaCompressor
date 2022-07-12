@@ -7,6 +7,7 @@ required_packages = [
     "ffmpeg-python==0.2.0",
     "colorlog==6.6.0",
     "pyyaml==6.0",
+    "bitmath==1.3.3.1",
 ]
 
 setuptools.setup(
