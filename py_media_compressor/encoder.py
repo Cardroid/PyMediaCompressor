@@ -76,10 +76,9 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
         ext = ".mp4"
         height = int(video_stream["height"])
         if height > maxHeight:
-            ffmpeg_global_args["vf"] = f"scale=-1:{maxHeight}"
+            is_even = round(int(video_stream["width"]) * maxHeight / height) % 2 == 0
+            ffmpeg_global_args["vf"] = f"scale={'-1' if is_even else '-2'}:{maxHeight}"
 
-    # output_filepath = f"{os.path.join(output_dirpath, os.path.splitext(os.path.basename(inputFilepath))[0])}.{ext}"
-    # ffmpeg_global_args["filename"] = output_filepath
     ffmpeg_global_args["filename"] = f"{os.path.splitext(outputFilepath)[0]}{ext}"
     ffmpeg_global_args["format"] = format
 
