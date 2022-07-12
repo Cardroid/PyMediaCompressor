@@ -9,7 +9,7 @@ import bitmath
 import ffmpeg
 from tqdm import tqdm
 
-from core import progress
+from common import progress
 import log
 import utils
 

@@ -18,9 +18,8 @@ setuptools.setup(
     description="Media compression encoder with ffmpeg Python wrapper",
     install_requires=required_packages,
     license="MIT",
-    packages=setuptools.find_packages(where="py_media_compressor"),
-    package_dir={"": "py_media_compressor"},
+    packages=setuptools.find_packages(where="src"),
+    package_dir={"": "src"},
     python_requires=">=3.8",
-    include_package_data=True,
     entry_points={"console_scripts": ["encode=py_media_compressor.encoder:main"]},
 )
