@@ -12,7 +12,7 @@ required_packages = [
 
 setuptools.setup(
     name="py-media-compressor",
-    version="1.0.1",
+    version="1.1.0",
     author="cardroid",
     author_email="carbonsindh@gmail.com",
     description="Media compression encoder with ffmpeg Python wrapper",
