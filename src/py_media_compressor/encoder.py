@@ -189,9 +189,11 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
             if process.wait() != 0:
                 raise Exception("프로세스가 올바르게 종료되지 않았습니다.")
 
+            utils.set_file_permission(ffmpeg_global_args["filename"])
             return FileTaskState.SUCCESS
         except Exception as err:
             logger.error(f"미디어 처리 오류: \n{pformat(temp_msg_storage)}\n{err}")
+            utils.set_file_permission(ffmpeg_global_args["filename"])
             return error_output_check(FileTaskState.ERROR)
     else:
         logger.debug(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
@@ -199,9 +201,11 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
         try:
             _, stderr = ffmpeg.run(stream_spec=stream, capture_stdout=True, capture_stderr=True)
             logger.info(utils.string_decode(stderr))
+            utils.set_file_permission(ffmpeg_global_args["filename"])
             return FileTaskState.SUCCESS
         except ffmpeg.Error as err:
             logger.error(utils.string_decode(err.stderr))
+            utils.set_file_permission(ffmpeg_global_args["filename"])
             return error_output_check(FileTaskState.ERROR)
 
 
@@ -396,7 +400,7 @@ def main():
             )
 
             if fileinfo["state"] == FileTaskState.ERROR:
-                logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다. \nState: {fileinfo['state']}\nOutput Filepath: {fileinfo['output_file']}")
+                logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다. \nState: {fileinfo['state']}\nInput Filepath: {fileinfo['input_file']}\nOutput Filepath: {fileinfo['output_file']}")
             elif (is_skipped := fileinfo["state"] == FileTaskState.SKIPPED) or fileinfo["state"] == FileTaskState.SUCCESS:
                 if not is_skipped:
                     if is_replace:
@@ -409,6 +413,7 @@ def main():
                                 fileinfo["output_file"] = dest_filepath
 
                                 shutil.move(src_filepath, dest_filepath)
+                                utils.set_file_permission(dest_filepath)
 
                                 if os.path.splitext(fileinfo["input_file"])[1] != os.path.splitext(fileinfo["output_file"])[1]:
                                     os.remove(fileinfo["input_file"])

@@ -1,5 +1,6 @@
 import os
 import hashlib
+import platform
 from pprint import PrettyPrinter
 import subprocess
 from glob import glob, escape
@@ -139,6 +140,7 @@ def save_config(config: Dict, filepath: str):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, "w", encoding="utf-8") as f:
         yaml.dump(config, f, Dumper=yaml.Dumper, width=100)
+    set_file_permission(filepath)
 
 
 def load_config(filepath: str) -> Dict:
@@ -153,3 +155,8 @@ def string_decode(byteString: bytes, encoding="utf-8"):
         string = byteString
 
     return string.replace("\r\n", "\n").replace("\u3000", "　")
+
+
+def set_file_permission(path: str, permissions=0o775):
+    if platform.system() == "Linux" and os.path.isfile(path):
+        os.chmod(path, permissions)
