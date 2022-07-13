@@ -270,14 +270,17 @@ def main():
     source_infos = []
     temp_path_dupl_list = []
     temp_hash_dupl_list = []
-    for input_filepath in args["input"]:
+    for input_filepath in (input_tqdm := tqdm(args["input"], desc="입력 경로에서 파일 검색 중...")):
+        input_tqdm.set_postfix(input_filepath=input_filepath)
         input_filepath = os.path.normpath(input_filepath)
         detected_fileinfos = []
 
-        for detected_filepath in utils.get_media_files(input_filepath):
+        for detected_filepath in (media_files_tqdm := tqdm(utils.get_media_files(input_filepath), leave=False)):
+            media_files_tqdm.set_postfix(filepath=detected_filepath.replace(input_filepath, ""))
             if detected_filepath not in temp_path_dupl_list:  # 경로가 겹치는 경우 (1차 필터링)
                 temp_path_dupl_list.append(detected_filepath)
 
+                media_files_tqdm.set_description("MD5 해시 계산 중...")
                 filehash = utils.get_MD5_hash(detected_filepath)
                 if filehash not in temp_hash_dupl_list:  # MD5 해시가 겹치는 경우 (2차 필터링)
                     temp_hash_dupl_list.append(filehash)
@@ -289,6 +292,7 @@ def main():
             dupl_file_count += 1
 
         if len(detected_fileinfos) > 0:
+            media_files_tqdm.set_description("소스파일 추가 완료.")
             source_infos.append({"target": input_filepath, "files": detected_fileinfos})
 
     logger.debug(f"입력 소스파일: \n{pformat(source_infos)}")
