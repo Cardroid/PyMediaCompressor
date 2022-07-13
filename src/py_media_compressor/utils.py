@@ -1,21 +1,23 @@
 import os
-from glob import glob
 import hashlib
+from pprint import PrettyPrinter
 import subprocess
-import sys
+from glob import glob
 from typing import Dict, List, Tuple
 import yaml
 
-from py_media_compressor.const import DEMUXER_FILE_EXT_LIST
+
+def pformat(object, indent=1, width=160, depth=None, compact=False, sort_dicts=True):  # 기본 인자값 재정의
+    return PrettyPrinter(indent=indent, width=width, depth=depth, compact=compact, sort_dicts=sort_dicts).pformat(object)
 
 
-def get_media_files(path: str, useRealpath=False, useMediaExtFilter=False) -> List[str]:
+def get_media_files(path: str, useRealpath=False, mediaExtFilter: List[str] = None) -> List[str]:
     """경로에 해당하는 미디어 파일 및 폴더 내의 모든 미디어 파일을 가져옵니다.
 
     Args:
         path (str): 경로
         useRealpath (bool, optional): 절대 경로를 사용합니다. Defaults to False.
-        useMediaExtFilter (bool, optional): ffmpeg에서 디먹싱 가능한 확장자 목록으로 필터링합니다. Defaults to False.
+        mediaExtFilter (List[str], optional): 확장자 필터. Defaults to None.
 
     Returns:
         List[str]: 파일의 목록을 반환합니다.
@@ -28,7 +30,13 @@ def get_media_files(path: str, useRealpath=False, useMediaExtFilter=False) -> Li
         return [path]
     elif os.path.isdir(path):
         path = os.path.join(path, "**")
-        return list(filter(lambda p: os.path.isfile(p) and (not useMediaExtFilter or os.path.splitext(p)[1] in DEMUXER_FILE_EXT_LIST), glob(path, recursive=True)))
+
+        if mediaExtFilter != None:
+            ext_filter = lambda p: os.path.isfile(p) and os.path.splitext(p)[1] in mediaExtFilter
+        else:
+            ext_filter = lambda p: os.path.isfile(p)
+
+        return list(filter(ext_filter, glob(path, recursive=True)))
     else:
         return []
 
