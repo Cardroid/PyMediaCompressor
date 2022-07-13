@@ -401,24 +401,28 @@ def main():
                 if not is_skipped:
                     if is_replace:
                         try:
-                            dest_filepath = f"{os.path.splitext(fileinfo['input_file'])[0]}{ext}"
-                            src_filepath = fileinfo["output_file"]
-                            fileinfo["output_file"] = dest_filepath
+                            fileinfo["output_file_size"] = os.path.getsize(fileinfo["output_file"])
 
-                            shutil.move(src_filepath, dest_filepath)
+                            if fileinfo["input_file_size"] > fileinfo["output_file_size"]:
+                                dest_filepath = f"{os.path.splitext(fileinfo['input_file'])[0]}{ext}"
+                                src_filepath = fileinfo["output_file"]
+                                fileinfo["output_file"] = dest_filepath
 
-                            if os.path.splitext(fileinfo["input_file"])[1] != os.path.splitext(fileinfo["output_file"])[1]:
-                                os.remove(fileinfo["input_file"])
+                                shutil.move(src_filepath, dest_filepath)
 
-                            logger.info(f"덮어쓰기 완료: {fileinfo['output_file']}")
+                                if os.path.splitext(fileinfo["input_file"])[1] != os.path.splitext(fileinfo["output_file"])[1]:
+                                    os.remove(fileinfo["input_file"])
+
+                                logger.info(f"덮어쓰기 성공")
+                            else:
+                                logger.info(f"원본 크기가 더 큽니다. 출력파일을 삭제합니다.")
+                                os.remove(fileinfo["output_file"])
                         except Exception as ex:
                             logger.error(f"원본 파일 덮어쓰기 실패: \n{ex}")
 
                     fileinfo["output_md5_hash"] = utils.get_MD5_hash(fileinfo["output_file"])
 
-                    logger.info(f"작업 완료: \nState: {fileinfo['state']}\nOutput Filepath: {fileinfo['output_file']}\nOutput File MD5 Hash: {fileinfo['output_md5_hash']}")
-
-            logger.debug(f"처리완료 최종 파일 정보: \n{pformat(fileinfo)}")
+            logger.info(f"처리완료\n최종 파일 정보: {pformat(fileinfo)}")
 
 
 if __name__ == "__main__":
