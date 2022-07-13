@@ -2,7 +2,7 @@ import os
 import hashlib
 from pprint import PrettyPrinter
 import subprocess
-from glob import glob
+from glob import glob, escape
 from typing import Dict, List, Tuple
 import yaml
 
@@ -29,7 +29,7 @@ def get_media_files(path: str, useRealpath=False, mediaExtFilter: List[str] = No
     if os.path.isfile(path):
         return [path]
     elif os.path.isdir(path):
-        path = os.path.join(path, "**")
+        path = os.path.join(escape(path), "**")
 
         if mediaExtFilter != None:
             ext_filter = lambda p: os.path.isfile(p) and os.path.splitext(p)[1] in mediaExtFilter
