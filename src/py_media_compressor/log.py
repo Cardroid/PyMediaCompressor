@@ -48,14 +48,15 @@ class LogDestination(Flag):
 
 
 # 전역 설정
+# config_filepath (str, optional): 로그 설정 파일 저장 경로. Defaults to "config/log.yaml".
 # level (int, optional): 출력 로그 레벨. Defaults to INFO.
 # dir (str, optional): 로그파일 저장 디렉토리 경로. Defaults to "logs".
 # use_console (bool, optional): 콘솔 출력 사용 여부. Defaults to True.
 # use_rotatingfile (bool, optional): 파일 출력 사용 여부. Defaults to True.
 SETTINGS = {
     "config_filepath": "config/log.yaml",
-    "dir": "logs",
     "level": INFO,
+    "dir": "logs",
     "use_console": True,
     "use_rotatingfile": True,
 }

@@ -59,7 +59,7 @@ def overwrite_small_file(originFilepath: str, destinationFilepath: str, orginFil
 
     Args:
         originFilepath (str): 원본 파일 경로
-        destFilepath (str): 목적 위치의 파일 경로
+        destinationFilepath (str): 목적 위치의 파일 경로
         orginFileRemove (bool, optional): 원본 파일을 제거합니다. Defaults to True.
 
     Returns:

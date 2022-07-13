@@ -37,10 +37,10 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
     """미디어를 압축합니다.
 
     Args:
-        input_filepath (str): 미디어 파일 경로
-        output_dirpath (str): 출력 파일 경로
-        is_force (bool, optional): 이미 처리된 미디어 파일을 강제적으로 재처리합니다. Defaults to False.
-        max_height (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
+        inputFilepath (str): 미디어 파일 경로
+        outputFilepath (str): 출력 파일 경로
+        isForce (bool, optional): 이미 처리된 미디어 파일을 강제적으로 재처리합니다. Defaults to False.
+        maxHeight (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
         removeErrorOutput (bool, optional): 정상적으로 압축하지 못했을 경우 출력 파일을 삭제합니다. Defaults to True.
         useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
         leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
