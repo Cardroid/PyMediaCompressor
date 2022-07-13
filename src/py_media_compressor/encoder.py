@@ -84,13 +84,13 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
     ffmpeg_global_args["format"] = format
 
     # * 영상 메타데이터에 표식 추가
-    tags = probe["format"]["tags"]
     comment = ""
 
-    for c in (tags.get("comment", ""), tags.get("COMMENT", "")):
-        if not utils.is_str_empty_or_space(c):
-            comment = c
-            break
+    if "format" in probe and (tags := probe["format"].get("tags", None)) != None:
+        for c in (tags.get("comment", ""), tags.get("COMMENT", ""), tags.get("Comment", "")):
+            if not utils.is_str_empty_or_space(c):
+                comment = c
+                break
 
     comment_lines = comment.splitlines(keepends=False)
 
