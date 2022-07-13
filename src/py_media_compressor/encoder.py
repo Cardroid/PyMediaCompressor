@@ -364,7 +364,7 @@ def main():
 
         for fileinfo in (fileinfo_tqdm := tqdm(source_info["files"], leave=False)):
             fileinfo_tqdm.set_postfix(filename=os.path.basename(fileinfo["input_file"]))
-            logger.info(f"현재 작업 파일 정보: \nInput Filepath: {fileinfo['input_file']}\nInput File MD5 Hash: {fileinfo['input_md5_hash']}")
+            logger.info(f"현재 작업 파일 정보: \n{pformat(fileinfo)}")
 
             try:
                 ext = get_output_fileext(fileinfo["input_file"])
