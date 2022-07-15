@@ -8,11 +8,12 @@ required_packages = [
     "colorlog==6.6.0",
     "pyyaml==6.0",
     "bitmath==1.3.3.1",
+    "psutil==5.9.1",
 ]
 
 setuptools.setup(
     name="py-media-compressor",
-    version="1.1.2",
+    version="1.2.0",
     author="cardroid",
     author_email="carbonsindh@gmail.com",
     description="Media compression encoder with ffmpeg Python wrapper",
