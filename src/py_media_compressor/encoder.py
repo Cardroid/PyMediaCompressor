@@ -431,10 +431,11 @@ def main():
                             else:
                                 logger.info(f"원본 크기가 더 큽니다. 출력파일을 삭제합니다.")
                                 os.remove(fileinfo["output_file"])
+                                fileinfo["output_file"] = fileinfo["input_file"]
                         except Exception as ex:
                             logger.error(f"원본 파일 덮어쓰기 실패: \n{ex}")
 
-                    fileinfo["output_md5_hash"] = utils.get_MD5_hash(fileinfo["output_file"])
+                    # fileinfo["output_md5_hash"] = utils.get_MD5_hash(fileinfo["output_file"])
 
             logger.info(f"처리완료\n최종 파일 정보: {pformat(fileinfo)}")
 
