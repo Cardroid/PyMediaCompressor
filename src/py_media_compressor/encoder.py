@@ -372,72 +372,71 @@ def main():
     is_save_error_output = args["save_error_output"]
     already_exists_mode = args["already_exists_mode"]
 
-    for source_info in tqdm(source_infos):
-        logger.debug(f"현재 작업 소스 정보: \n{pformat(source_info)}")
+    logger.debug(f"현재 작업 소스 정보: \n{pformat(source_infos)}")
 
-        for fileinfo in (fileinfo_tqdm := tqdm(source_info["files"], leave=False)):
-            fileinfo_tqdm.set_postfix(filename=os.path.basename(fileinfo["input_file"]))
-            logger.info(f"현재 작업 파일 정보: \n{pformat(fileinfo)}")
+    for fileinfo in (fileinfo_tqdm := tqdm(input_files := [file for source_info in source_infos for file in source_info["files"]], leave=False)):
+        fileinfo_tqdm.set_postfix(filename=os.path.basename(fileinfo["input_file"]))
+        logger.info(f"현재 작업 파일 정보: \n{pformat(fileinfo)}")
 
-            try:
-                ext = get_output_fileext(fileinfo["input_file"])
-            except Exception:
-                logger.error("출력 파일 확장자를 추정할 수 없습니다. 해당 파일을 건너뜁니다.")
-                continue
+        try:
+            ext = get_output_fileext(fileinfo["input_file"])
+        except Exception:
+            logger.error("출력 파일 확장자를 추정할 수 없습니다. 해당 파일을 건너뜁니다.")
+            continue
 
-            fileinfo["output_file"] = os.path.join(output_dirpath, f"{os.path.splitext(os.path.basename(fileinfo['input_file']))[0]}{ext}")
+        fileinfo["output_file"] = os.path.join(output_dirpath, f"{os.path.splitext(os.path.basename(fileinfo['input_file']))[0]}{ext}")
 
-            if already_exists_mode == "numbering":
-                count = 0
-                output_filepath = fileinfo["output_file"]
-                temp_filename = os.path.splitext(output_filepath)[0]
-                while os.path.isfile(output_filepath):
-                    output_filepath = f"{temp_filename} ({(count := count + 1)}){ext}"
-                fileinfo["output_file"] = output_filepath
-            elif already_exists_mode == "skip" and os.path.isfile(fileinfo["output_file"]):
-                logger.info(f"이미 출력파일이 존재합니다... skipped.")
-                continue
+        if already_exists_mode == "numbering":
+            count = 0
+            output_filepath = fileinfo["output_file"]
+            temp_filename = os.path.splitext(output_filepath)[0]
+            while os.path.isfile(output_filepath):
+                output_filepath = f"{temp_filename} ({(count := count + 1)}){ext}"
+            fileinfo["output_file"] = output_filepath
+        elif already_exists_mode == "skip" and os.path.isfile(fileinfo["output_file"]):
+            logger.info(f"이미 출력파일이 존재합니다... skipped.")
+            continue
 
-            fileinfo["state"] = media_compress_encode(
-                inputFilepath=fileinfo["input_file"],
-                outputFilepath=fileinfo["output_file"],
-                isForce=is_force,
-                maxHeight=args["height"],
-                removeErrorOutput=not is_save_error_output,
-                useProgressbar=True,
-                leave=False,
-            )
+        fileinfo["state"] = media_compress_encode(
+            inputFilepath=fileinfo["input_file"],
+            outputFilepath=fileinfo["output_file"],
+            isForce=is_force,
+            maxHeight=args["height"],
+            removeErrorOutput=not is_save_error_output,
+            useProgressbar=True,
+            leave=False,
+        )
 
-            if fileinfo["state"] == FileTaskState.ERROR:
-                logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다. \nState: {fileinfo['state']}\nInput Filepath: {fileinfo['input_file']}\nOutput Filepath: {fileinfo['output_file']}")
-            elif (is_skipped := fileinfo["state"] == FileTaskState.SKIPPED) or fileinfo["state"] == FileTaskState.SUCCESS:
-                if not is_skipped:
-                    if is_replace:
-                        try:
-                            fileinfo["output_file_size"] = os.path.getsize(fileinfo["output_file"])
+        if fileinfo["state"] == FileTaskState.ERROR:
+            logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다. \nState: {fileinfo['state']}\nInput Filepath: {fileinfo['input_file']}\nOutput Filepath: {fileinfo['output_file']}")
+        elif (is_skipped := fileinfo["state"] == FileTaskState.SKIPPED) or fileinfo["state"] == FileTaskState.SUCCESS:
+            if not is_skipped:
+                if is_replace:
+                    try:
+                        fileinfo["output_file_size"] = os.path.getsize(fileinfo["output_file"])
 
-                            if fileinfo["input_file_size"] > fileinfo["output_file_size"]:
-                                dest_filepath = f"{os.path.splitext(fileinfo['input_file'])[0]}{ext}"
-                                src_filepath = fileinfo["output_file"]
-                                fileinfo["output_file"] = dest_filepath
+                        if fileinfo["input_file_size"] > fileinfo["output_file_size"]:
+                            dest_filepath = f"{os.path.splitext(fileinfo['input_file'])[0]}{ext}"
+                            src_filepath = fileinfo["output_file"]
+                            fileinfo["output_file"] = dest_filepath
 
-                                shutil.move(src_filepath, dest_filepath)
-                                utils.set_file_permission(dest_filepath)
+                            shutil.move(src_filepath, dest_filepath)
+                            utils.set_file_permission(dest_filepath)
 
-                                if os.path.splitext(fileinfo["input_file"])[1] != os.path.splitext(fileinfo["output_file"])[1]:
-                                    os.remove(fileinfo["input_file"])
+                            if os.path.splitext(fileinfo["input_file"])[1] != os.path.splitext(fileinfo["output_file"])[1]:
+                                os.remove(fileinfo["input_file"])
 
-                                logger.info(f"덮어쓰기 성공")
-                            else:
-                                logger.info(f"원본 크기가 더 큽니다. 출력파일을 삭제합니다.")
-                                os.remove(fileinfo["output_file"])
-                                fileinfo["output_file"] = fileinfo["input_file"]
-                        except Exception as ex:
-                            logger.error(f"원본 파일 덮어쓰기 실패: \n{ex}")
+                            logger.info(f"덮어쓰기 성공")
+                        else:
+                            logger.info(f"원본 크기가 더 큽니다. 출력파일을 삭제합니다.")
+                            os.remove(fileinfo["output_file"])
+                            fileinfo["output_file"] = fileinfo["input_file"]
+                    except Exception as ex:
+                        logger.error(f"원본 파일 덮어쓰기 실패: \n{ex}")
 
-                    # fileinfo["output_md5_hash"] = utils.get_MD5_hash(fileinfo["output_file"])
+                # fileinfo["output_md5_hash"] = utils.get_MD5_hash(fileinfo["output_file"])
 
-            logger.info(f"처리완료\n최종 파일 정보: {pformat(fileinfo)}")
+        logger.info(f"처리완료\n최종 파일 정보: {pformat(fileinfo)}")
 
 
 if __name__ == "__main__":
