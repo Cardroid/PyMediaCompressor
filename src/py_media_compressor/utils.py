@@ -1,6 +1,7 @@
 import os
 import hashlib
 import platform
+import psutil
 from pprint import PrettyPrinter
 import subprocess
 from glob import glob, escape
@@ -160,3 +161,11 @@ def string_decode(byteString: bytes, encoding="utf-8"):
 def set_file_permission(path: str, permissions=0o775):
     if platform.system() == "Linux" and os.path.isfile(path):
         os.chmod(path, permissions)
+
+
+def set_low_process_priority(processid: int):
+    p = psutil.Process(processid)
+    if platform.system() == "Windows":
+        p.nice(psutil.IDLE_PRIORITY_CLASS)
+    else:
+        p.nice(15)

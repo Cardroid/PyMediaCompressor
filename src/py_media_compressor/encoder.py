@@ -177,11 +177,14 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
             logger.info(f"오류가 발생한 출력파일을 제거했습니다. Path: {ffmpeg_global_args['filename']}")
         return result
 
+    logger.info(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
+
     if useProgressbar:
         msg_queue = Queue()
         temp_msg_storage = []
         try:
             process = progress.run_ffmpeg_process_with_msg_queue(stream, msg_queue)
+            utils.set_low_process_priority(process.pid)
             logger.debug(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
 
             Thread(target=msg_reader, args=[msg_queue, temp_msg_storage]).start()
@@ -191,18 +194,24 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
 
             utils.set_file_permission(ffmpeg_global_args["filename"])
             return FileTaskState.SUCCESS
+
         except Exception as err:
             logger.error(f"미디어 처리 오류: \n{pformat(temp_msg_storage)}\n{err}")
             utils.set_file_permission(ffmpeg_global_args["filename"])
             return error_output_check(FileTaskState.ERROR)
     else:
-        logger.debug(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
-
         try:
-            _, stderr = ffmpeg.run(stream_spec=stream, capture_stdout=True, capture_stderr=True)
+            process = ffmpeg.run_async(stream_spec=stream, pipe_stdout=True, pipe_stderr=True)
+            _, stderr = process.communicate()
+            utils.set_low_process_priority(process.pid)
+
+            if process.poll() != 0:
+                raise ffmpeg.Error("ffmpeg", "", stderr)
+
             logger.info(utils.string_decode(stderr))
             utils.set_file_permission(ffmpeg_global_args["filename"])
             return FileTaskState.SUCCESS
+
         except ffmpeg.Error as err:
             logger.error(utils.string_decode(err.stderr))
             utils.set_file_permission(ffmpeg_global_args["filename"])
