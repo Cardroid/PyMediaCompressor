@@ -227,12 +227,14 @@ def get_output_fileext(filepath: str):
     return ".m4a" if video_stream == None else ".mp4"
 
 
-def get_source_file(inputPaths: List[str], mediaExtFilter: List[str] = None) -> Tuple[List, int, int]:
+def get_source_file(inputPaths: List[str], mediaExtFilter: List[str] = None, useProgressbar=False, leave=True) -> Tuple[List, int, int]:
     """입력 경로에서 소스파일을 검색합니다.
 
     Args:
         inputPaths (List[str]): 입력 경로
         mediaExtFilter (List[str], optional): 미디어 확장자 필터. Defaults to None.
+        useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
+        leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
 
     Returns:
         Tuple[List, int, int]: 검색된 소스 파일 리스트, 검색된 파일 수, 중복 소스 파일 수
@@ -282,15 +284,22 @@ def get_source_file(inputPaths: List[str], mediaExtFilter: List[str] = None) -> 
     file_count = 0
     dupl_file_count = 0
     source_infos = []
-    for input_filepath in (input_tqdm := tqdm(inputPaths, desc="입력 경로에서 파일 검색 중...")):
-        input_tqdm.set_postfix(input_filepath=input_filepath)
+
+    input_iter = tqdm(inputPaths, desc="입력 경로에서 파일 검색 중...", leave=leave) if useProgressbar else inputPaths
+    for input_filepath in input_iter:
+        if useProgressbar:
+            input_iter.set_postfix(input_filepath=input_filepath)
+
         input_filepath = os.path.normpath(input_filepath)
         detected_fileinfos = []
 
-        for detected_filepath in (media_files_tqdm := tqdm(utils.get_media_files(input_filepath, mediaExtFilter=mediaExtFilter), leave=False)):
-            media_files_tqdm.set_postfix(filepath=detected_filepath.replace(input_filepath, ""))
+        media_files = utils.get_media_files(input_filepath, mediaExtFilter=mediaExtFilter)
+        media_files_iter = tqdm(media_files, leave=False) if useProgressbar else media_files
+        for detected_filepath in media_files_iter:
+            if useProgressbar:
+                media_files_iter.set_postfix(filepath=detected_filepath.replace(input_filepath, ""))
 
-            if (dupl_test_result := duplicate_file_filter(detected_filepath, tqdm_manager=media_files_tqdm))[0]:
+            if (dupl_test_result := duplicate_file_filter(detected_filepath, tqdm_manager=media_files_iter if useProgressbar else None))[0]:
                 detected_fileinfos.append(dupl_test_result[1])
                 file_count += 1
             else:
@@ -366,7 +375,7 @@ def main():
     logger.info(f"파일 확장자 필터 로드 완료")
 
     # 입력 소스 파일 추출 및 중복 제거
-    source_infos, file_count, dupl_file_count = get_source_file(args["input"], ext_filter.get("exts", None))
+    source_infos, file_count, dupl_file_count = get_source_file(args["input"], ext_filter.get("exts", None), useProgressbar=True)
 
     if args["scan"]:
         logger.info(f"입력 소스파일: \n{pformat(source_infos)}")
