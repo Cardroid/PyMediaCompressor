@@ -50,7 +50,7 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
         bool: 작업 완료 상태
     """
 
-    logger = log.get_logger(name=f"{os.path.splitext(os.path.basename(__file__))[0]}.main")
+    logger = log.get_logger(media_compress_encode)
 
     if not os.path.isfile(inputFilepath):
         logger.error(f"입력 파일이 존재하지 않습니다. Filepath: {inputFilepath}")
@@ -253,7 +253,7 @@ def main():
     if args["log_path"] != "" and not args["log_path"].isspace():
         log.SETTINGS["dir"] = args["log_path"]
 
-    logger = log.get_logger(name=f"{os.path.splitext(os.path.basename(__file__))[0]}.main")
+    logger = log.get_logger(main)
 
     logger.info("** 프로그램 시작점 **")
     logger.debug(f"입력 인수: {args}")
