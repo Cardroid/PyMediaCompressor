@@ -3,7 +3,7 @@ from enum import Enum, auto, unique
 from queue import Queue
 import shutil
 from threading import Thread
-from typing import List
+from typing import List, Tuple
 import bitmath
 import ffmpeg
 from tqdm import tqdm
@@ -227,6 +227,82 @@ def get_output_fileext(filepath: str):
     return ".m4a" if video_stream == None else ".mp4"
 
 
+def get_source_file(inputPaths: List[str], mediaExtFilter: List[str] = None) -> Tuple[List, int, int]:
+    """입력 경로에서 소스파일을 검색합니다.
+
+    Args:
+        inputPaths (List[str]): 입력 경로
+        mediaExtFilter (List[str], optional): 미디어 확장자 필터. Defaults to None.
+
+    Returns:
+        Tuple[List, int, int]: 검색된 소스 파일 리스트, 검색된 파일 수, 중복 소스 파일 수
+    """
+
+    logger = log.get_logger(get_source_file)
+
+    temp_hash_dupl_list = []
+
+    def duplicate_file_filter(path: str, tqdm_manager: tqdm = None):
+        is_dupl = False
+        dupl_info = None
+        fileinfo = {"input_file": path, "input_file_size": os.path.getsize(path)}
+
+        if isinstance(tqdm_manager, tqdm):
+            tqdm_manager.set_description("[DupCheck] 중복 파일 확인 중...")
+
+        for o_fileinfo in temp_hash_dupl_list:
+            if fileinfo["input_file"] == o_fileinfo["input_file"]:  # 경로가 겹치는 경우 (1차 필터링)
+                is_dupl = True
+                dupl_info = o_fileinfo
+                break
+            elif fileinfo["input_file_size"] == o_fileinfo["input_file_size"]:  # 파일 크기가 겹치는 경우 (2차 필터링)
+                if isinstance(tqdm_manager, tqdm):
+                    tqdm_manager.set_description("[DupCheck] MD5 해시 계산 중...")
+
+                fileinfo["input_md5_hash"] = utils.get_MD5_hash(fileinfo["input_file"])
+
+                if "input_md5_hash" not in o_fileinfo:
+                    o_fileinfo["input_md5_hash"] = utils.get_MD5_hash(o_fileinfo["input_file"])
+
+                if fileinfo["input_md5_hash"] == o_fileinfo["input_md5_hash"]:  # MD5 해시가 겹치는 경우 (3차 필터링)
+                    is_dupl = True
+                    dupl_info = o_fileinfo
+                    break
+
+        if isinstance(tqdm_manager, tqdm):
+            if is_dupl:
+                tqdm_manager.set_description("[DupCheck] 중복 파일 감지됨")
+            else:
+                tqdm_manager.set_description("[DupCheck] 확인 완료")
+
+        if not is_dupl:
+            temp_hash_dupl_list.append(fileinfo)
+        return (not is_dupl, fileinfo, dupl_info)
+
+    file_count = 0
+    dupl_file_count = 0
+    source_infos = []
+    for input_filepath in (input_tqdm := tqdm(inputPaths, desc="입력 경로에서 파일 검색 중...")):
+        input_tqdm.set_postfix(input_filepath=input_filepath)
+        input_filepath = os.path.normpath(input_filepath)
+        detected_fileinfos = []
+
+        for detected_filepath in (media_files_tqdm := tqdm(utils.get_media_files(input_filepath, mediaExtFilter=mediaExtFilter), leave=False)):
+            media_files_tqdm.set_postfix(filepath=detected_filepath.replace(input_filepath, ""))
+
+            if (dupl_test_result := duplicate_file_filter(detected_filepath, tqdm_manager=media_files_tqdm))[0]:
+                detected_fileinfos.append(dupl_test_result[1])
+                file_count += 1
+            else:
+                logger.info(f"중복 파일이 제외되었습니다.\nOrigin: {pformat(dupl_test_result[1])}\nTest: {pformat(dupl_test_result[2])}", {"dest": log.LogDestination.FILE})
+                dupl_file_count += 1
+
+        if len(detected_fileinfos) > 0:
+            source_infos.append({"target": input_filepath, "files": detected_fileinfos})
+
+    return (source_infos, file_count, dupl_file_count)
+
+
 def main():
     import argparse
 
@@ -290,66 +366,7 @@ def main():
     logger.info(f"파일 확장자 필터 로드 완료")
 
     # 입력 소스 파일 추출 및 중복 제거
-
-    temp_hash_dupl_list = []
-
-    def duplicate_file_filter(path: str, tqdm_manager: tqdm = None):
-        is_dupl = False
-        dupl_info = None
-        fileinfo = {"input_file": path, "input_file_size": os.path.getsize(path)}
-
-        if isinstance(tqdm_manager, tqdm):
-            tqdm_manager.set_description("[DupCheck] 중복 파일 확인 중...")
-
-        for o_fileinfo in temp_hash_dupl_list:
-            if fileinfo["input_file"] == o_fileinfo["input_file"]:  # 경로가 겹치는 경우 (1차 필터링)
-                is_dupl = True
-                dupl_info = o_fileinfo
-                break
-            elif fileinfo["input_file_size"] == o_fileinfo["input_file_size"]:  # 파일 크기가 겹치는 경우 (2차 필터링)
-                if isinstance(tqdm_manager, tqdm):
-                    tqdm_manager.set_description("[DupCheck] MD5 해시 계산 중...")
-
-                fileinfo["input_md5_hash"] = utils.get_MD5_hash(fileinfo["input_file"])
-
-                if "input_md5_hash" not in o_fileinfo:
-                    o_fileinfo["input_md5_hash"] = utils.get_MD5_hash(o_fileinfo["input_file"])
-
-                if fileinfo["input_md5_hash"] == o_fileinfo["input_md5_hash"]:  # MD5 해시가 겹치는 경우 (3차 필터링)
-                    is_dupl = True
-                    dupl_info = o_fileinfo
-                    break
-
-        if isinstance(tqdm_manager, tqdm):
-            if is_dupl:
-                tqdm_manager.set_description("[DupCheck] 중복 파일 감지됨")
-            else:
-                tqdm_manager.set_description("[DupCheck] 확인 완료")
-
-        if not is_dupl:
-            temp_hash_dupl_list.append(fileinfo)
-        return (not is_dupl, fileinfo, dupl_info)
-
-    file_count = 0
-    dupl_file_count = 0
-    source_infos = []
-    for input_filepath in (input_tqdm := tqdm(args["input"], desc="입력 경로에서 파일 검색 중...")):
-        input_tqdm.set_postfix(input_filepath=input_filepath)
-        input_filepath = os.path.normpath(input_filepath)
-        detected_fileinfos = []
-
-        for detected_filepath in (media_files_tqdm := tqdm(utils.get_media_files(input_filepath, mediaExtFilter=ext_filter.get("exts", None)), leave=False)):
-            media_files_tqdm.set_postfix(filepath=detected_filepath.replace(input_filepath, ""))
-
-            if (dupl_test_result := duplicate_file_filter(detected_filepath, tqdm_manager=media_files_tqdm))[0]:
-                detected_fileinfos.append(dupl_test_result[1])
-                file_count += 1
-            else:
-                logger.info(f"중복 파일이 제외되었습니다.\nOrigin: {pformat(dupl_test_result[1])}\nTest: {pformat(dupl_test_result[2])}", {"dest": log.LogDestination.FILE})
-                dupl_file_count += 1
-
-        if len(detected_fileinfos) > 0:
-            source_infos.append({"target": input_filepath, "files": detected_fileinfos})
+    source_infos, file_count, dupl_file_count = get_source_file(args["input"], ext_filter.get("exts", None))
 
     if args["scan"]:
         logger.info(f"입력 소스파일: \n{pformat(source_infos)}")
