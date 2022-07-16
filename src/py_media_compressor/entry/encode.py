@@ -32,7 +32,7 @@ def main():
     log.SETTINGS["use_console"] = args["log_mode"] in ["c", "cf", "console", "consolefile"]
     log.SETTINGS["use_rotatingfile"] = args["log_mode"] in ["f", "cf", "file", "consolefile"]
 
-    if args["log_path"] != "" and not args["log_path"].isspace():
+    if not utils.is_str_empty_or_space(args["log_path"]):
         log.SETTINGS["dir"] = args["log_path"]
 
     logger = log.get_logger(main)
@@ -94,6 +94,10 @@ def main():
     is_force = args["force"]
     is_save_error_output = args["save_error_output"]
     already_exists_mode = args["already_exists_mode"]
+    try:
+        max_height = int(args["height"])
+    except:
+        max_height = 1440
 
     logger.debug(f"현재 작업 소스 정보: \n{pformat(source_infos)}")
 
@@ -124,7 +128,7 @@ def main():
             inputFilepath=fileinfo["input_file"],
             outputFilepath=fileinfo["output_file"],
             isForce=is_force,
-            maxHeight=args["height"],
+            maxHeight=max_height,
             removeErrorOutput=not is_save_error_output,
             useProgressbar=True,
             leave=False,
