@@ -1,6 +1,7 @@
-# from glob import glob
-# from posixpath import basename, splitext
+from importlib.machinery import SourceFileLoader
 import setuptools
+
+version = SourceFileLoader("py_media_compressor.version", "src/py_media_compressor/version.py").load_module().version
 
 required_packages = [
     "tqdm==4.64.0",
@@ -8,11 +9,12 @@ required_packages = [
     "colorlog==6.6.0",
     "pyyaml==6.0",
     "bitmath==1.3.3.1",
+    "psutil==5.9.1",
 ]
 
 setuptools.setup(
     name="py-media-compressor",
-    version="1.0.1",
+    version=version,
     author="cardroid",
     author_email="carbonsindh@gmail.com",
     description="Media compression encoder with ffmpeg Python wrapper",
@@ -21,5 +23,5 @@ setuptools.setup(
     packages=setuptools.find_packages(where="src"),
     package_dir={"": "src"},
     python_requires=">=3.8",
-    entry_points={"console_scripts": ["encode=py_media_compressor.encoder:main"]},
+    entry_points={"console_scripts": ["encode=py_media_compressor.entry.encode:main"]},
 )

@@ -1,13 +1,15 @@
 import os
+import inspect
 from enum import Enum, Flag, auto, unique
 import logging
 import logging.handlers
 import logging.config
 import re
-from typing import Dict, Union
+from typing import Dict, Union, Callable
 import colorlog
 
 from py_media_compressor import utils
+from py_media_compressor.version import package_name
 
 # 로그 레벨 정의
 CRITICAL = logging.CRITICAL
@@ -48,14 +50,15 @@ class LogDestination(Flag):
 
 
 # 전역 설정
+# config_filepath (str, optional): 로그 설정 파일 저장 경로. Defaults to "config/log.yaml".
 # level (int, optional): 출력 로그 레벨. Defaults to INFO.
 # dir (str, optional): 로그파일 저장 디렉토리 경로. Defaults to "logs".
 # use_console (bool, optional): 콘솔 출력 사용 여부. Defaults to True.
 # use_rotatingfile (bool, optional): 파일 출력 사용 여부. Defaults to True.
 SETTINGS = {
     "config_filepath": "config/log.yaml",
-    "dir": "logs",
     "level": INFO,
+    "dir": "logs",
     "use_console": True,
     "use_rotatingfile": True,
 }
@@ -64,16 +67,28 @@ SETTINGS = {
 LogDest = LogDestination.ALL
 
 
-def get_logger(name: str, logLevel: int = -1) -> logging.Logger:
+def get_logger(name: Union[str, Callable], logLevel: int = -1) -> logging.Logger:
     """로거를 생성합니다.
 
     Args:
-        name (str): 로거 이름
+        name (Union[str, Callable]): 로거 이름 또는 호출 함수
         logLevel (int, optional): 출력 로그 레벨. Default value is the value of SETTINGS.
 
     Returns:
         logging.Logger: 로거
     """
+
+    if callable(name):
+        frm = inspect.stack()[1]
+        path = os.path.normpath(os.path.splitext(frm.filename)[0])
+        module_path = path.split(os.sep)
+        paths = []
+        for path_name in reversed(module_path):
+            if path_name == package_name:
+                break
+            paths.append(path_name)
+        paths.append(name.__name__)
+        name = ".".join(paths)
 
     os.makedirs(SETTINGS["dir"], exist_ok=True)
 
