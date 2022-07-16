@@ -21,6 +21,7 @@ FILE_EXT_FILTER_LIST = [
     ".ts",
     ".m3u8",
     ".asf",
+    ".wav",
     ".wmv",
     ".wma",
 ]
