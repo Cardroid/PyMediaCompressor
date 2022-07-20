@@ -25,7 +25,7 @@ class FFmpegArgs(DictDataExtendBase):
         self._video_stream = None
         self._audio_streams = []
         for stream in self.probe_info["streams"]:
-            if self._video_stream != None and stream["codec_type"] == "video" and stream["codec_name"] not in ["png"]:
+            if self._video_stream == None and stream["codec_type"] == "video" and stream["codec_name"] not in ["png"]:
                 self._video_stream = stream
             elif stream["codec_type"] == "audio":
                 self._audio_streams.append(stream)
@@ -69,4 +69,4 @@ class FFmpegArgs(DictDataExtendBase):
 
     @property
     def expected_ext(self) -> str:
-        return ".m4a" if self.is_only_audio else ".mkv"
+        return ".m4a" if self.is_only_audio else ".mp4"

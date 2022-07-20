@@ -31,8 +31,8 @@ def add_format_args(ffmpegArgs: FFmpegArgs):
         format = "ipod"  # == m4a
         ext = ".m4a"
     else:
-        format = "matroska"
-        ext = ".mkv"
+        format = "mp4"
+        ext = ".mp4"
 
     ffmpegArgs["filename"] = f"{os.path.splitext(ffmpegArgs.file_info.output_filepath)[0]}{ext}"
     ffmpegArgs["format"] = format
