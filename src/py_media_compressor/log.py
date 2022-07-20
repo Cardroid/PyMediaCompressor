@@ -1,52 +1,16 @@
 import os
+import re
 import inspect
-from enum import Enum, Flag, auto, unique
 import logging
 import logging.handlers
 import logging.config
-import re
 from typing import Dict, Union, Callable
+
 import colorlog
 
 from py_media_compressor import utils
+from py_media_compressor.model.enum import LogDestination, LogLevel
 from py_media_compressor.version import package_name
-
-# 로그 레벨 정의
-CRITICAL = logging.CRITICAL
-ERROR = logging.ERROR
-WARNING = logging.WARNING
-INFO = logging.INFO
-DEBUG = logging.DEBUG
-
-LOGLEVEL_DICT = {
-    "critical": CRITICAL,
-    "error": ERROR,
-    "warning": WARNING,
-    "info": INFO,
-    "debug": DEBUG,
-}
-
-
-@unique
-class LogDestination(Flag):
-    CONSOLE = auto()
-    FILE = auto()
-    ALL = CONSOLE | FILE
-
-    @staticmethod
-    def is_flag(item1: Enum, item2: Enum) -> bool:
-        return (item1.value & item2.value) != 0
-
-    def is_flag(self, item: Enum) -> bool:
-        return (self.value & item.value) != 0
-
-    @classmethod
-    def has_value(cls, value: int) -> bool:
-        return value in cls._value2member_map_
-
-    @classmethod
-    def has_name(cls, name: str) -> bool:
-        return name in cls._member_map_
 
 
 # 전역 설정
@@ -57,7 +21,7 @@ class LogDestination(Flag):
 # use_rotatingfile (bool, optional): 파일 출력 사용 여부. Defaults to True.
 SETTINGS = {
     "config_filepath": "config/log.yaml",
-    "level": INFO,
+    "level": LogLevel.INFO,
     "dir": "logs",
     "use_console": True,
     "use_rotatingfile": True,
@@ -67,16 +31,18 @@ SETTINGS = {
 LogDest = LogDestination.ALL
 
 
-def get_logger(name: Union[str, Callable], logLevel: int = -1) -> logging.Logger:
+def get_logger(name: Union[str, Callable], logLevel: LogLevel = LogLevel.DEFAULT) -> logging.Logger:
     """로거를 생성합니다.
 
     Args:
         name (Union[str, Callable]): 로거 이름 또는 호출 함수
-        logLevel (int, optional): 출력 로그 레벨. Default value is the value of SETTINGS.
+        logLevel (LogLevel, optional): 출력 로그 레벨. Default value is the value of SETTINGS.
 
     Returns:
         logging.Logger: 로거
     """
+
+    global SETTINGS
 
     if callable(name):
         frm = inspect.stack()[1]
@@ -95,8 +61,9 @@ def get_logger(name: Union[str, Callable], logLevel: int = -1) -> logging.Logger
     if not logging.root.hasHandlers():
         root_logger_setup()
 
+    logLevel = logLevel.value
     if logLevel < 0:
-        logLevel = SETTINGS["level"]
+        logLevel = SETTINGS["level"].value
 
     logger = logging.getLogger(name)
     logger.setLevel(logLevel)
@@ -105,6 +72,8 @@ def get_logger(name: Union[str, Callable], logLevel: int = -1) -> logging.Logger
 
 
 def get_default_config() -> Dict:
+    global SETTINGS
+
     using_root_handlers = []
     if SETTINGS["use_console"]:
         using_root_handlers.append("console")
@@ -160,11 +129,9 @@ def get_default_config() -> Dict:
                 "encoding": "utf-8",
             },
         },
-        "loggers": {
-            "": {
-                "level": logging.getLevelName(SETTINGS["level"]),
-                "handlers": using_root_handlers,
-            }
+        "root": {
+            "level": logging.getLevelName(SETTINGS["level"].value),
+            "handlers": using_root_handlers,
         },
     }
 
@@ -172,6 +139,8 @@ def get_default_config() -> Dict:
 
 
 def root_logger_setup():
+    global SETTINGS
+
     is_config_load_from_file = False
     exception = None
 
@@ -188,6 +157,7 @@ def root_logger_setup():
     logging.config.dictConfig(config)
 
     logger = logging.getLogger("log")
+    logger.setLevel(SETTINGS["level"].value)
 
     if is_config_load_from_file:
         logger.debug(f"설정 파일 로드 완료")
@@ -219,7 +189,7 @@ class HandlerDestFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord):
         self._format_line(record=record)
-        if len(record.args) > 0 and isinstance(dest := record.args.get("dest", None), LogDestination):
+        if len(record.args) > 0 and isinstance(dest := record.args.get("dest"), LogDestination):
             del record.args["dest"]
             return self.mode.is_flag(dest)
         else:

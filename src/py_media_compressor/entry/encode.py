@@ -1,12 +1,15 @@
 import os
 import shutil
-from tqdm import tqdm
+import warnings
+from tqdm import TqdmWarning, tqdm
 
-from py_media_compressor import log, utils
+from py_media_compressor import log, encoder, model, utils
 from py_media_compressor.utils import pformat
 from py_media_compressor.const import FILE_EXT_FILTER_LIST
-from py_media_compressor.encoder.encoder import FileTaskState
-from py_media_compressor.encoder import encoder
+from py_media_compressor.model.enum import LogLevel, FileTaskStatus
+
+# 경고 문구 무시
+warnings.filterwarnings(action="ignore", category=TqdmWarning)
 
 
 def main():
@@ -14,7 +17,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="미디어를 압축 인코딩합니다.")
 
-    parser.add_argument("--log-level", choices=log.LOGLEVEL_DICT.keys(), dest="log_level", default="info", help="로그 레벨 설정")
+    parser.add_argument("--log-level", choices=[ll.name.lower() for ll in LogLevel if ll.name != "DEFAULT"], dest="log_level", default="info", help="로그 레벨 설정")
     parser.add_argument("--log-mode", choices=["c", "f", "cf", "console", "file", "consolefile"], dest="log_mode", default="consolefile", help="로그 출력 모드 설정")
     parser.add_argument("--log-path", dest="log_path", default=log.SETTINGS["dir"], help="로그 출력 모드 설정")
     parser.add_argument("-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 및 디렉토리 경로")
@@ -28,7 +31,7 @@ def main():
 
     args = vars(parser.parse_args())
 
-    log.SETTINGS["level"] = log.LOGLEVEL_DICT[args["log_level"].lower()]
+    log.SETTINGS["level"] = LogLevel[args["log_level"].upper()]
     log.SETTINGS["use_console"] = args["log_mode"] in ["c", "cf", "console", "consolefile"]
     log.SETTINGS["use_rotatingfile"] = args["log_mode"] in ["f", "cf", "file", "consolefile"]
 
@@ -38,25 +41,24 @@ def main():
     logger = log.get_logger(main)
 
     logger.info("** 프로그램 시작점 **")
-    logger.debug(f"입력 인수: {args}")
+    logger.debug(f"입력 인수\n{pformat(args)}")
 
     for info in (utils.check_command_availability("ffmpeg -version"), utils.check_command_availability("ffprobe -version")):
-        if not info[0] or logger.isEnabledFor(log.DEBUG):
+        if not info[0] or logger.isEnabledFor(LogLevel.DEBUG):
             info_str = pformat(
                 {
                     "exit_success": info[0],
                     "stdout": utils.string_decode(info[1]).splitlines(),
                     "stderr": utils.string_decode(info[2]).splitlines(),
                     "exception": info[3],
-                },
-                width=160,
+                }
             )
 
         if not info[0]:
             logger.critical(f"ffmpeg 또는 ffprobe 동작 확인 불가, 해당 프로그램은 ffmpeg 및 ffprobe가 필요합니다.\nInfo: {info_str}")
             return
 
-        if logger.isEnabledFor(log.DEBUG):
+        if logger.isEnabledFor(LogLevel.DEBUG):
             logger.debug(f"command 실행 가능 여부, 검사 정보: {info_str}")
 
     logger.debug(f"ffmpeg, ffprobe 동작 확인 완료")
@@ -72,12 +74,13 @@ def main():
     logger.info(f"파일 확장자 필터 로드 완료")
 
     # 입력 소스 파일 추출 및 중복 제거
-    source_infos, file_count, dupl_file_count = encoder.get_source_file(args["input"], ext_filter.get("exts", None), useProgressbar=True)
+    source_infos, file_count, dupl_file_count = encoder.get_source_file(args["input"], ext_filter.get("exts"), useProgressbar=True)
+    file_infos = encoder.convert_SI2FI(source_infos)
 
     if args["scan"]:
-        logger.info(f"입력 소스파일: \n{pformat(source_infos)}")
-    else:
-        logger.debug(f"입력 소스파일: \n{pformat(source_infos)}")
+        logger.info(f"입력 소스파일: \n{pformat(file_infos)}")
+    elif logger.isEnabledFor(LogLevel.DEBUG):
+        logger.debug(f"입력 소스파일: \n{pformat(file_infos)}")
 
     logger.info(f"감지된 소스파일 수: {dupl_file_count + file_count}, 입력 소스파일 수: {file_count}, 중복 소스파일 수: {dupl_file_count}")
 
@@ -99,68 +102,69 @@ def main():
     except:
         max_height = 1440
 
-    logger.debug(f"현재 작업 소스 정보: \n{pformat(source_infos)}")
+    if logger.isEnabledFor(LogLevel.DEBUG):
+        logger.debug(f"현재 작업 소스 정보: \n{pformat(file_infos)}")
 
-    for fileinfo in (fileinfo_tqdm := tqdm([file for source_info in source_infos for file in source_info["files"]], leave=False)):
-        fileinfo_tqdm.set_postfix(filename=os.path.basename(fileinfo["input_file"]))
-        logger.info(f"현재 작업 파일 정보: \n{pformat(fileinfo)}")
+    encode_option = model.EncodeOption(
+        isForce=is_force,
+        maxHeight=max_height,
+        removeErrorOutput=not is_save_error_output,
+        useProgressbar=True,
+        leave=False,
+    )
+
+    ffmpeg_args: model.FFmpegArgs
+    for ffmpeg_args in (ffmpeg_args_tqdm := tqdm([model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option) for file_info in file_infos], leave=False, dynamic_ncols=True)):
+        ffmpeg_args_tqdm.set_postfix(filename=os.path.basename(ffmpeg_args.file_info.input_filepath))
 
         try:
-            ext = encoder.get_output_fileext(fileinfo["input_file"])
+            ext = ffmpeg_args.expected_ext
         except Exception:
             logger.error("출력 파일 확장자를 추정할 수 없습니다. 해당 파일을 건너뜁니다.")
             continue
 
-        fileinfo["output_file"] = os.path.join(output_dirpath, f"{os.path.splitext(os.path.basename(fileinfo['input_file']))[0]}{ext}")
+        ffmpeg_args.file_info.output_filepath = os.path.join(output_dirpath, f"{os.path.splitext(os.path.basename(ffmpeg_args.file_info.input_filepath))[0]}{ext}")
 
         if already_exists_mode == "numbering":
             count = 0
-            output_filepath = fileinfo["output_file"]
+            output_filepath = ffmpeg_args.file_info.output_filepath
             temp_filename = os.path.splitext(output_filepath)[0]
             while os.path.isfile(output_filepath):
                 output_filepath = f"{temp_filename} ({(count := count + 1)}){ext}"
-            fileinfo["output_file"] = output_filepath
-        elif already_exists_mode == "skip" and os.path.isfile(fileinfo["output_file"]):
+            ffmpeg_args.file_info.output_filepath = output_filepath
+        elif already_exists_mode == "skip" and os.path.isfile(ffmpeg_args.file_info.output_filepath):
             logger.info(f"이미 출력파일이 존재합니다... skipped.")
             continue
 
-        fileinfo["state"] = encoder.media_compress_encode(
-            inputFilepath=fileinfo["input_file"],
-            outputFilepath=fileinfo["output_file"],
-            isForce=is_force,
-            maxHeight=max_height,
-            removeErrorOutput=not is_save_error_output,
-            useProgressbar=True,
-            leave=False,
-        )
+        file_info = encoder.media_compress_encode(ffmpeg_args)
 
-        if fileinfo["state"] == FileTaskState.ERROR:
-            logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다. \nState: {fileinfo['state']}\nInput Filepath: {fileinfo['input_file']}\nOutput Filepath: {fileinfo['output_file']}")
-        elif (is_skipped := fileinfo["state"] == FileTaskState.SKIPPED) or fileinfo["state"] == FileTaskState.SUCCESS:
+        if file_info.status == FileTaskStatus.ERROR:
+            logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다. \nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}")
+        elif (is_skipped := file_info.status == FileTaskStatus.SKIPPED) or file_info.status == FileTaskStatus.SUCCESS:
             if not is_skipped:
                 if is_replace:
                     try:
-                        fileinfo["output_file_size"] = os.path.getsize(fileinfo["output_file"])
-
-                        if fileinfo["input_file_size"] > fileinfo["output_file_size"]:
-                            dest_filepath = f"{os.path.splitext(fileinfo['input_file'])[0]}{ext}"
-                            src_filepath = fileinfo["output_file"]
-                            fileinfo["output_file"] = dest_filepath
+                        if file_info.input_filesize > file_info.output_filesize:
+                            dest_filepath = f"{os.path.splitext(file_info.input_filepath)[0]}{ext}"
+                            src_filepath = file_info.output_filepath
+                            file_info.output_filepath = dest_filepath
 
                             shutil.move(src_filepath, dest_filepath)
                             utils.set_file_permission(dest_filepath)
 
-                            if os.path.splitext(fileinfo["input_file"])[1] != os.path.splitext(fileinfo["output_file"])[1]:
-                                os.remove(fileinfo["input_file"])
+                            if os.path.splitext(file_info.input_filepath)[1] != os.path.splitext(file_info.output_filepath)[1]:
+                                os.remove(file_info.input_filepath)
 
                             logger.info(f"덮어쓰기 성공")
                         else:
                             logger.info(f"원본 크기가 더 큽니다. 출력파일을 삭제합니다.")
-                            os.remove(fileinfo["output_file"])
-                            fileinfo["output_file"] = fileinfo["input_file"]
+                            os.remove(file_info.output_filepath)
+                            file_info.output_filepath = file_info.input_filepath
                     except Exception as ex:
                         logger.error(f"원본 파일 덮어쓰기 실패: \n{ex}")
 
-                # fileinfo["output_md5_hash"] = utils.get_MD5_hash(fileinfo["output_file"])
+        logger.info(f"처리완료\n최종 파일 정보: {pformat(file_info)}")
 
-        logger.info(f"처리완료\n최종 파일 정보: {pformat(fileinfo)}")
+
+if __name__ == "__main__":
+    main()

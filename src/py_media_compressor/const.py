@@ -1,7 +1,13 @@
+# 인코더 표식
+PROCESSER_NAME = "Automatic media compression processed"
+PROCESSER_TAG_END = "AMCP_END"
+
+
 # 사용자 지정 파일확장자 필터
 FILE_EXT_FILTER_LIST = [
     ".3gp",
     ".3g2",
+    ".aif",
     ".aac",
     ".ac3",
     ".avi",
