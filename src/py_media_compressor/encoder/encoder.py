@@ -34,11 +34,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
         logger.info(f"현재 작업 파일 정보: \n{pformat(ffmpegArgs.get_all_in_one_dict())}")
 
     if ffmpegArgs.file_info.status == FileTaskStatus.SKIPPED:
-        if ffmpegArgs.encode_option.is_force:
-            logger.info("강제로 인코딩을 실시합니다.")
-        else:
-            logger.info("해당 파일을 스킵했습니다.")
-            return ffmpegArgs.file_info
+        return ffmpegArgs.file_info
 
     ffmpeg_args_dict = ffmpegArgs.as_dict()
 
@@ -112,7 +108,6 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
         try:
             process = progress.run_ffmpeg_process_with_msg_queue(stream, msg_queue)
             utils.set_low_process_priority(process.pid)
-            logger.debug(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
 
             Thread(target=msg_reader, args=[msg_queue, temp_msg_storage]).start()
 
