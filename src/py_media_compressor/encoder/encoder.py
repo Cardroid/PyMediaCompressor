@@ -1,141 +1,66 @@
 import os
-from enum import Enum, auto, unique
-from queue import Queue
+import queue
 from threading import Thread
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 import bitmath
 import ffmpeg
 from tqdm import tqdm
 
+from py_media_compressor import log, utils
 from py_media_compressor.common import progress
-from py_media_compressor import log
-from py_media_compressor import utils
+from py_media_compressor.encoder import add_args
+from py_media_compressor.model import FileInfo, FFmpegArgs
+from py_media_compressor.model.enum import FileTaskStatus, LogLevel
 from py_media_compressor.utils import pformat
 
-PROCESSER_NAME = "Automatic media compression processed"
 
-
-@unique
-class FileTaskState(Enum):
-    INIT = auto()
-    WAIT = auto()
-    SKIPPED = auto()
-    SUCCESS = auto()
-    ERROR = auto()
-
-    @classmethod
-    def has_value(cls, value: int) -> bool:
-        return value in cls._value2member_map_
-
-    @classmethod
-    def has_name(cls, name: str) -> bool:
-        return name in cls._member_map_
-
-
-def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False, maxHeight=1440, removeErrorOutput=True, useProgressbar=False, leave=True) -> FileTaskState:
+def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     """미디어를 압축합니다.
 
     Args:
-        inputFilepath (str): 미디어 파일 경로
-        outputFilepath (str): 출력 파일 경로
-        isForce (bool, optional): 이미 처리된 미디어 파일을 강제적으로 재처리합니다. Defaults to False.
-        maxHeight (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
-        removeErrorOutput (bool, optional): 정상적으로 압축하지 못했을 경우 출력 파일을 삭제합니다. Defaults to True.
-        useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
-        leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
+        ffmpegArgs (FFmpegArgs): 인코더, 파일 소스를 포함한 인자
 
     Returns:
-        bool: 작업 완료 상태
+        FileInfo: 파일 정보
     """
 
     logger = log.get_logger(media_compress_encode)
 
-    if not os.path.isfile(inputFilepath):
-        logger.error(f"입력 파일이 존재하지 않습니다. Filepath: {inputFilepath}")
-        return FileTaskState.ERROR
+    if ffmpegArgs.file_info.status == FileTaskStatus.INIT:
+        add_args(ffmpegArgs=ffmpegArgs)
+        logger.debug("ffmpeg 인자 자동 생성 완료")
 
-    probe = ffmpeg.probe(inputFilepath)
-    video_stream = next((stream for stream in probe["streams"] if stream["codec_type"] == "video"), None)
+    if logger.isEnabledFor(LogLevel.INFO):
+        logger.info(f"현재 작업 파일 정보: \n{pformat(ffmpegArgs.get_all_in_one_dict())}")
 
-    is_only_audio = video_stream == None
+    if ffmpegArgs.file_info.status == FileTaskStatus.SKIPPED:
+        return ffmpegArgs.file_info
 
-    output_dirpath = os.path.dirname(outputFilepath)
-    os.makedirs(output_dirpath, exist_ok=True)
+    ffmpeg_args_dict = ffmpegArgs.as_dict()
 
-    ffmpeg_global_args = {}
+    stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath)
 
-    if is_only_audio:
-        format = "ipod"  # == m4a
-        ext = ".m4a"
-    else:
-        ffmpeg_global_args["c:v"] = "libx264"
-        ffmpeg_global_args["crf"] = 20
-        ffmpeg_global_args["preset"] = "veryslow"
-        format = "mp4"
-        ext = ".mp4"
-        height = int(video_stream["height"])
-        if height > maxHeight:
-            is_even = round(int(video_stream["width"]) * maxHeight / height) % 2 == 0
-            ffmpeg_global_args["vf"] = f"scale={'-1' if is_even else '-2'}:{maxHeight}"
+    streams = []
+    if ffmpegArgs.video_stream != None:
+        streams.append(stream[str(ffmpegArgs.video_stream["index"])])
 
-    ffmpeg_global_args["filename"] = f"{os.path.splitext(outputFilepath)[0]}{ext}"
-    ffmpeg_global_args["format"] = format
+    for audio_stream in ffmpegArgs.audio_streams:
+        streams.append(stream[str(audio_stream["index"])])
 
-    # * 영상 메타데이터에 표식 추가
-    comment = ""
-
-    if "format" in probe and (tags := probe["format"].get("tags", None)) != None:
-        for c in (tags.get("comment", ""), tags.get("COMMENT", ""), tags.get("Comment", "")):
-            if not utils.is_str_empty_or_space(c):
-                comment = c
-                break
-
-    comment_lines = comment.splitlines(keepends=False)
-
-    if len(comment_lines) == 0 or comment_lines[-1] != PROCESSER_NAME:
-        if comment == "":
-            comment = PROCESSER_NAME
-        else:
-            comment = f"{comment}\n{PROCESSER_NAME}"
-        ffmpeg_global_args["metadata"] = f"comment={comment}"
-    else:
-        # * 영상이 이미 처리된 경우
-        logger.info("이미 처리된 미디어입니다.")
-        if isForce:
-            logger.warning(f"강제로 재인코딩을 실시합니다... is_force: {isForce}")
-        else:
-            return FileTaskState.SKIPPED
-
-    audio_stream_info = None
-
-    for stream_info in (stream for stream in probe["streams"] if stream["codec_type"] == "audio"):
-        if audio_stream_info == None or stream_info["channels"] > audio_stream_info["channels"]:
-            audio_stream_info = stream_info
-
-    if audio_stream_info != None:
-        if stream_info["codec_name"] in ["aac", "mp3"]:
-            ffmpeg_global_args["c:a"] = "copy"
-        else:
-            ffmpeg_global_args["c:a"] = "aac"
-            bit_rate = stream_info.get("bit_rate", None)
-            ffmpeg_global_args["b:a"] = 320_000 if bit_rate == None else int(bit_rate)
-
-    stream = ffmpeg.input(inputFilepath)
-
-    stream = ffmpeg.output(stream, **ffmpeg_global_args)
+    stream = ffmpeg.output(*streams, **ffmpeg_args_dict)
 
     stream = ffmpeg._ffmpeg.global_args(stream, "-hide_banner")
 
     stream = ffmpeg.overwrite_output(stream)
 
-    def msg_reader(queue: Queue, temp_msg_storage: List = None):
-        total_duration = float(probe["format"]["duration"])
-        bar = tqdm(total=round(total_duration, 2), leave=leave)
+    def msg_reader(queue: queue.Queue, temp_msg_storage: List = None):
+        total_duration = float(ffmpegArgs.probe_info["format"]["duration"])
+        bar = tqdm(total=round(total_duration, 2), leave=ffmpegArgs.encode_option.leave, dynamic_ncols=True)
         info = {}
 
         for msg in iter(queue.get, None):
             if msg["type"] == "stderr":
-                if logger.isEnabledFor(log.DEBUG):
+                if logger.isEnabledFor(LogLevel.DEBUG):
                     logger.debug(f"ffmpeg output str: \n{pformat(msg)}")
                 if temp_msg_storage != None:
                     temp_msg_storage.append(msg["msg"])
@@ -169,34 +94,35 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
 
         bar.close()
 
-    def error_output_check(result: FileTaskState):
-        if removeErrorOutput and result == FileTaskState.ERROR and os.path.isfile(ffmpeg_global_args["filename"]):
-            os.remove(ffmpeg_global_args["filename"])
-            logger.info(f"오류가 발생한 출력파일을 제거했습니다. Path: {ffmpeg_global_args['filename']}")
-        return result
+    def error_output_check(ffmpegArgs: FFmpegArgs):
+        if ffmpegArgs.encode_option.remove_error_output and ffmpegArgs.file_info.status == FileTaskStatus.ERROR and os.path.isfile(ffmpegArgs.file_info.output_filepath):
+            os.remove(ffmpegArgs.file_info.output_filepath)
+            logger.info(f"오류가 발생한 출력파일을 제거했습니다. Path: {ffmpegArgs.file_info.output_filepath}")
+        return ffmpegArgs.file_info
 
     logger.info(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
 
-    if useProgressbar:
-        msg_queue = Queue()
+    if ffmpegArgs.encode_option.use_progressbar:
+        msg_queue = queue.Queue()
         temp_msg_storage = []
         try:
             process = progress.run_ffmpeg_process_with_msg_queue(stream, msg_queue)
             utils.set_low_process_priority(process.pid)
-            logger.debug(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
 
             Thread(target=msg_reader, args=[msg_queue, temp_msg_storage]).start()
 
             if process.wait() != 0:
                 raise Exception("프로세스가 올바르게 종료되지 않았습니다.")
 
-            utils.set_file_permission(ffmpeg_global_args["filename"])
-            return FileTaskState.SUCCESS
+            utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
+            ffmpegArgs.file_info.status = FileTaskStatus.SUCCESS
+            return ffmpegArgs.file_info
 
         except Exception as err:
+            ffmpegArgs.file_info.status = FileTaskStatus.ERROR
             logger.error(f"미디어 처리 오류: \n{pformat(temp_msg_storage)}\n{err}")
-            utils.set_file_permission(ffmpeg_global_args["filename"])
-            return error_output_check(FileTaskState.ERROR)
+            utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
+            return error_output_check(ffmpegArgs)
     else:
         try:
             process = ffmpeg.run_async(stream_spec=stream, pipe_stdout=True, pipe_stderr=True)
@@ -207,22 +133,15 @@ def media_compress_encode(inputFilepath: str, outputFilepath: str, isForce=False
                 raise ffmpeg.Error("ffmpeg", "", stderr)
 
             logger.info(utils.string_decode(stderr))
-            utils.set_file_permission(ffmpeg_global_args["filename"])
-            return FileTaskState.SUCCESS
+            utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
+            ffmpegArgs.file_info.status = FileTaskStatus.SUCCESS
+            return ffmpegArgs.file_info
 
         except ffmpeg.Error as err:
+            ffmpegArgs.file_info.status = FileTaskStatus.ERROR
             logger.error(utils.string_decode(err.stderr))
-            utils.set_file_permission(ffmpeg_global_args["filename"])
-            return error_output_check(FileTaskState.ERROR)
-
-
-def get_output_fileext(filepath: str):
-
-    assert os.path.isfile(filepath), "파일이 존재하지 않습니다."
-
-    probe = ffmpeg.probe(filepath)
-    video_stream = next((stream for stream in probe["streams"] if stream["codec_type"] == "video"), None)
-    return ".m4a" if video_stream == None else ".mp4"
+            utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
+            return error_output_check(ffmpegArgs)
 
 
 def get_source_file(inputPaths: List[str], mediaExtFilter: List[str] = None, useProgressbar=False, leave=True) -> Tuple[List, int, int]:
@@ -235,7 +154,7 @@ def get_source_file(inputPaths: List[str], mediaExtFilter: List[str] = None, use
         leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
 
     Returns:
-        Tuple[List, int, int]: 검색된 소스 파일 리스트, 검색된 파일 수, 중복 소스 파일 수
+        Tuple[List, int, int]: 검색된 소스 파일 정보 리스트, 검색된 파일 수, 중복 소스 파일 수
     """
 
     logger = log.get_logger(get_source_file)
@@ -283,7 +202,7 @@ def get_source_file(inputPaths: List[str], mediaExtFilter: List[str] = None, use
     dupl_file_count = 0
     source_infos = []
 
-    input_iter = tqdm(inputPaths, desc="입력 경로에서 파일 검색 중...", leave=leave) if useProgressbar else inputPaths
+    input_iter = tqdm(inputPaths, desc="입력 경로에서 파일 검색 중...", leave=leave, dynamic_ncols=True) if useProgressbar else inputPaths
     for input_filepath in input_iter:
         if useProgressbar:
             input_iter.set_postfix(input_filepath=input_filepath)
@@ -292,7 +211,7 @@ def get_source_file(inputPaths: List[str], mediaExtFilter: List[str] = None, use
         detected_fileinfos = []
 
         media_files = utils.get_media_files(input_filepath, mediaExtFilter=mediaExtFilter)
-        media_files_iter = tqdm(media_files, leave=False) if useProgressbar else media_files
+        media_files_iter = tqdm(media_files, leave=False, dynamic_ncols=True) if useProgressbar else media_files
         for detected_filepath in media_files_iter:
             if useProgressbar:
                 media_files_iter.set_postfix(filepath=detected_filepath.replace(input_filepath, ""))
@@ -308,3 +227,28 @@ def get_source_file(inputPaths: List[str], mediaExtFilter: List[str] = None, use
             source_infos.append({"target": input_filepath, "files": detected_fileinfos})
 
     return (source_infos, file_count, dupl_file_count)
+
+
+def convert_SI2FI(source_infos: List[Dict[str, Any]]) -> List[FileInfo]:
+    """소스 파일 정보 Dict의 형식을 FileInfo로 변환합니다.
+
+    Args:
+        source_infos (List[Dict[str, Any]]): 소스 파일 정보 리스트
+
+    Returns:
+        List[FileInfo]: 변환된 FileInfo 리스트
+    """
+
+    result = []
+
+    for source_info in [file for source_info in source_infos for file in source_info["files"]]:
+        result.append(file_info := FileInfo(source_info["input_file"]))
+
+        data = file_info.as_dict()
+
+        if input_file_size := source_info.get("input_file_size"):
+            data["input_filesize"] = input_file_size
+        if input_md5_hash := source_info.get("input_md5_hash"):
+            data["input_file_MD5"] = input_md5_hash
+
+    return result

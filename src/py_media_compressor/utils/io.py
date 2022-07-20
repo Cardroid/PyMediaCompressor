@@ -1,16 +1,10 @@
 import os
 import hashlib
+from glob import escape, glob
 import platform
-import psutil
-from pprint import PrettyPrinter
-import subprocess
-from glob import glob, escape
-from typing import Dict, List, Tuple
+from typing import Dict, List
+
 import yaml
-
-
-def pformat(object, indent=1, width=160, depth=None, compact=False, sort_dicts=True):  # 기본 인자값 재정의
-    return PrettyPrinter(indent=indent, width=width, depth=depth, compact=compact, sort_dicts=sort_dicts).pformat(object)
 
 
 def get_media_files(path: str, useRealpath=False, mediaExtFilter: List[str] = None) -> List[str]:
@@ -99,42 +93,9 @@ def overwrite_small_file(originFilepath: str, destinationFilepath: str, orginFil
     return is_remove_success
 
 
-def is_str_empty_or_space(string: str) -> bool:
-    """입력된 문자열이 비어있거나, 공백 또는 None 인지 확인합니다.
-
-    Args:
-        string (str): 검사할 문자열
-
-    Returns:
-        bool: 문자열이 비어있거나, 공백 또는 None일 경우 True, 아닐경우 False를 반환합니다.
-    """
-
-    return string == None or string == "" or string.isspace()
-
-
-def check_command_availability(command: str) -> Tuple[bool, str, str]:
-    """해당 명령이가 커맨드 라인에서 올바르게 종료되는지 체크합니다.
-
-    Args:
-        command (str): 실행할 명령어
-
-    Returns:
-        bool: 프로세스가 올바르게 종료되었을 경우 True, 아닐경우 False를 반환합니다.
-    """
-
-    exception = None
-
-    try:
-        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
-        result = process.wait() == 0
-    except Exception as ex:
-        stdout = ""
-        stderr = ""
-        exception = ex
-        result = False
-
-    return (result, stdout, stderr, exception)
+def set_file_permission(path: str, permissions=0o775):
+    if platform.system() == "Linux" and os.path.isfile(path):
+        os.chmod(path, permissions)
 
 
 def save_config(config: Dict, filepath: str):
@@ -147,25 +108,3 @@ def save_config(config: Dict, filepath: str):
 def load_config(filepath: str) -> Dict:
     with open(filepath, "r", encoding="utf-8") as f:
         return yaml.load(f, Loader=yaml.FullLoader)
-
-
-def string_decode(byteString: bytes, encoding="utf-8"):
-    if isinstance(byteString, bytes):
-        string = byteString.decode(encoding=encoding)
-    else:
-        string = byteString
-
-    return string.replace("\r\n", "\n").replace("\u3000", "　")
-
-
-def set_file_permission(path: str, permissions=0o775):
-    if platform.system() == "Linux" and os.path.isfile(path):
-        os.chmod(path, permissions)
-
-
-def set_low_process_priority(processid: int):
-    p = psutil.Process(processid)
-    if platform.system() == "Windows":
-        p.nice(psutil.IDLE_PRIORITY_CLASS)
-    else:
-        p.nice(15)
