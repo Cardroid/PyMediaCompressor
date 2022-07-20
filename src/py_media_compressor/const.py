@@ -23,7 +23,6 @@ FILE_EXT_FILTER_LIST = [
     ".mp4",
     ".m4a",
     ".mp2",
-    ".mp3",
     ".ogg",
     ".mpg",
     ".mpeg",
