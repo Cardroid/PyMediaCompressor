@@ -12,9 +12,7 @@ class FFmpegArgs(DictDataExtendBase):
         assert isinstance(encodeOption, EncodeOption)
         assert isinstance(metadatas, dict)
 
-        # 사용자 정의 메타 데이터 사용 가능 (-movflags use_metadata_tags)
-        # 해당 옵션이 없으면 스트림 카피로도 메타 데이터가 누락됨
-        super().__init__(data={"movflags": "use_metadata_tags"})
+        super().__init__()
 
         self._metadatas = metadatas
         self._encode_option = encodeOption
