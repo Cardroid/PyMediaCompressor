@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 import ffmpeg
 
 from py_media_compressor.common import DictDataExtendBase
+from py_media_compressor.const import STREAM_FILTER
 from py_media_compressor.model import FileInfo, EncodeOption
 
 
@@ -23,7 +24,7 @@ class FFmpegArgs(DictDataExtendBase):
         self._video_stream = None
         self._audio_streams = []
         for stream in self.probe_info["streams"]:
-            if self._video_stream == None and stream["codec_type"] == "video" and stream["codec_name"] not in ["png"]:
+            if self._video_stream == None and stream["codec_type"] == "video" and stream["codec_name"] not in STREAM_FILTER:
                 self._video_stream = stream
             elif stream["codec_type"] == "audio":
                 self._audio_streams.append(stream)
