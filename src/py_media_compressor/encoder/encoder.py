@@ -37,6 +37,10 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     if ffmpegArgs.file_info.status == FileTaskStatus.SKIPPED:
         return ffmpegArgs.file_info
 
+    if ffmpegArgs.file_info.status != FileTaskStatus.WAITING:
+        logger.error(f"해당 작업의 상태가 올비르지 않습니다. Skipped.")
+        return ffmpegArgs.file_info
+
     ffmpeg_args_dict = ffmpegArgs.as_dict()
 
     stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath)
