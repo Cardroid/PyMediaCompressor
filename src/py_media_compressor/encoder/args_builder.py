@@ -68,8 +68,12 @@ def add_video_args(ffmpegArgs: FFmpegArgs):
     logger = log.get_logger(add_video_args)
 
     if not ffmpegArgs.is_only_audio:
-        ffmpegArgs["c:v"] = "libx264"
-        ffmpegArgs["crf"] = 20
+        compression_mode = ffmpegArgs.encode_option.compression_mode
+        if compression_mode == "h.264":
+            ffmpegArgs["c:v"] = "libx264"
+        elif compression_mode == "h.265":
+            ffmpegArgs["c:v"] = "libx265"
+        ffmpegArgs["crf"] = ffmpegArgs.encode_option.crf
         ffmpegArgs["preset"] = "veryslow"
         height = int(ffmpegArgs.video_stream["height"])
 
