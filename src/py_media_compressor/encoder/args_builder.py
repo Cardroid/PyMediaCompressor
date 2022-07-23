@@ -11,17 +11,37 @@ from py_media_compressor import utils
 _is_libfdk_aac_enabled = None
 
 
-def add_args(ffmpegArgs: FFmpegArgs):
-    """FFmpeg 인자 추가"""
+def _status_changer(func):
+    def wrapper_function(**kwargs):
+        result = func(**kwargs)
+
+        if (ffmpegArgs := kwargs.get("ffmpegArgs")) != None and ffmpegArgs.file_info.status == FileTaskStatus.INIT:
+            ffmpegArgs.file_info.status = FileTaskStatus.WAITING
+
+        return result
+
+    return wrapper_function
+
+
+@_status_changer
+def add_auto_args(ffmpegArgs: FFmpegArgs):
+    """FFmpeg 인자 자동 추가"""
 
     add_format_args(ffmpegArgs=ffmpegArgs)
     add_video_args(ffmpegArgs=ffmpegArgs)
     add_audio_args(ffmpegArgs=ffmpegArgs)
     add_metadata_args(ffmpegArgs=ffmpegArgs)
 
-    ffmpegArgs.file_info.status = FileTaskStatus.WAITING
+
+@_status_changer
+def add_stream_copy_args(ffmpegArgs: FFmpegArgs):
+    """FFmpeg 스트림 복사 인자 추가"""
+
+    ffmpegArgs["c:v"] = "copy"
+    ffmpegArgs["c:a"] = "copy"
 
 
+@_status_changer
 def add_format_args(ffmpegArgs: FFmpegArgs):
     """포멧 인자 추가"""
 
@@ -31,8 +51,8 @@ def add_format_args(ffmpegArgs: FFmpegArgs):
         format = "ipod"  # == m4a
         ext = ".m4a"
     else:
-        format = "matroska"
-        ext = ".mkv"
+        format = "mp4"
+        ext = ".mp4"
 
     ffmpegArgs["filename"] = f"{os.path.splitext(ffmpegArgs.file_info.output_filepath)[0]}{ext}"
     ffmpegArgs["format"] = format
@@ -41,14 +61,19 @@ def add_format_args(ffmpegArgs: FFmpegArgs):
         logger.debug(f"포멧 인자 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
 
 
+@_status_changer
 def add_video_args(ffmpegArgs: FFmpegArgs):
     """비디오 인자 추가"""
 
     logger = log.get_logger(add_video_args)
 
     if not ffmpegArgs.is_only_audio:
-        ffmpegArgs["c:v"] = "libx264"
-        ffmpegArgs["crf"] = 20
+        compression_mode = ffmpegArgs.encode_option.compression_mode
+        if compression_mode == "h.264":
+            ffmpegArgs["c:v"] = "libx264"
+        elif compression_mode == "h.265":
+            ffmpegArgs["c:v"] = "libx265"
+        ffmpegArgs["crf"] = ffmpegArgs.encode_option.crf
         ffmpegArgs["preset"] = "veryslow"
         height = int(ffmpegArgs.video_stream["height"])
 
@@ -60,6 +85,7 @@ def add_video_args(ffmpegArgs: FFmpegArgs):
         logger.debug(f"비디오 인자 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
 
 
+@_status_changer
 def add_audio_args(ffmpegArgs: FFmpegArgs):
     """오디오 인자 추가"""
 
@@ -84,6 +110,7 @@ def add_audio_args(ffmpegArgs: FFmpegArgs):
         logger.debug(f"오디오 인자 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
 
 
+@_status_changer
 def add_metadata_args(ffmpegArgs: FFmpegArgs):
     """메타데이터 인자 추가"""
 

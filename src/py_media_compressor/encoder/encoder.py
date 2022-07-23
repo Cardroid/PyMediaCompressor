@@ -8,7 +8,8 @@ from tqdm import tqdm
 
 from py_media_compressor import log, utils
 from py_media_compressor.common import progress
-from py_media_compressor.encoder import add_args
+from py_media_compressor.const import STREAM_FILTER
+from py_media_compressor.encoder import add_auto_args
 from py_media_compressor.model import FileInfo, FFmpegArgs
 from py_media_compressor.model.enum import FileTaskStatus, LogLevel
 from py_media_compressor.utils import pformat
@@ -27,7 +28,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     logger = log.get_logger(media_compress_encode)
 
     if ffmpegArgs.file_info.status == FileTaskStatus.INIT:
-        add_args(ffmpegArgs=ffmpegArgs)
+        add_auto_args(ffmpegArgs=ffmpegArgs)
         logger.debug("ffmpeg 인자 자동 생성 완료")
 
     if logger.isEnabledFor(LogLevel.INFO):
@@ -36,16 +37,18 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     if ffmpegArgs.file_info.status == FileTaskStatus.SKIPPED:
         return ffmpegArgs.file_info
 
+    if ffmpegArgs.file_info.status != FileTaskStatus.WAITING:
+        logger.error(f"해당 작업의 상태가 올비르지 않습니다. Skipped.")
+        return ffmpegArgs.file_info
+
     ffmpeg_args_dict = ffmpegArgs.as_dict()
 
     stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath)
 
     streams = []
-    if ffmpegArgs.video_stream != None:
-        streams.append(stream[str(ffmpegArgs.video_stream["index"])])
-
-    for audio_stream in ffmpegArgs.audio_streams:
-        streams.append(stream[str(audio_stream["index"])])
+    for stm in ffmpegArgs.probe_info["streams"]:
+        if stm["codec_name"] not in STREAM_FILTER:
+            streams.append(stream[str(stm["index"])])
 
     stream = ffmpeg.output(*streams, **ffmpeg_args_dict)
 

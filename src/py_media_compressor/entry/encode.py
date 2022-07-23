@@ -4,6 +4,7 @@ import warnings
 from tqdm import TqdmWarning, tqdm
 
 from py_media_compressor import log, encoder, model, utils
+from py_media_compressor.encoder import args_builder
 from py_media_compressor.utils import pformat
 from py_media_compressor.const import FILE_EXT_FILTER_LIST
 from py_media_compressor.model.enum import LogLevel, FileTaskStatus
@@ -26,6 +27,8 @@ def main():
     parser.add_argument("-e", "--already_exists_mode", choices=["overwrite", "skip", "numbering"], dest="already_exists_mode", default="numbering", help="출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.")
     parser.add_argument("-s", "--save_error_output", dest="save_error_output", action="store_true", help="오류가 발생한 출력물을 제거하지 않습니다.")
     parser.add_argument("-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 스킵하지 않고, 재압축합니다.")
+    parser.add_argument("-c", choices=["h.264", "h.265"], dest="compression_mode", default="h.264", help="압축 모드")
+    parser.add_argument("--crf", dest="crf", default=26, help="압축 crf 값")
     parser.add_argument("--scan", dest="scan", action="store_true", help="해당 옵션을 사용하면, 입력 파일을 탐색하고, 실제 압축은 하지 않습니다.")
     parser.add_argument("--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다.")
 
@@ -106,8 +109,10 @@ def main():
         logger.debug(f"현재 작업 소스 정보: \n{pformat(file_infos)}")
 
     encode_option = model.EncodeOption(
-        isForce=is_force,
         maxHeight=max_height,
+        isForce=is_force,
+        compressionMode=args["compression_mode"],
+        crf=args["crf"],
         removeErrorOutput=not is_save_error_output,
         useProgressbar=True,
         leave=False,
@@ -143,25 +148,35 @@ def main():
         elif (is_skipped := file_info.status == FileTaskStatus.SKIPPED) or file_info.status == FileTaskStatus.SUCCESS:
             if not is_skipped:
                 if is_replace:
+
+                    def replace_input_output(fileInfo: model.FileInfo):
+                        dest_filepath = os.path.join(os.path.dirname(fileInfo.input_filepath), os.path.basename(fileInfo.output_filepath))
+                        src_filepath = fileInfo.output_filepath
+
+                        shutil.move(src_filepath, dest_filepath)
+                        fileInfo.output_filepath = dest_filepath
+
+                        utils.set_file_permission(fileInfo.output_filepath)
+
+                        if os.path.splitext(fileInfo.input_filepath)[1] != os.path.splitext(fileInfo.output_filepath)[1]:
+                            os.remove(fileInfo.input_filepath)
+
+                        logger.info(f"덮어쓰기 성공")
+
                     try:
-                        if file_info.input_filesize > file_info.output_filesize:
-                            dest_filepath = f"{os.path.splitext(file_info.input_filepath)[0]}{ext}"
-                            src_filepath = file_info.output_filepath
-                            file_info.output_filepath = dest_filepath
-
-                            shutil.move(src_filepath, dest_filepath)
-                            utils.set_file_permission(dest_filepath)
-
-                            if os.path.splitext(file_info.input_filepath)[1] != os.path.splitext(file_info.output_filepath)[1]:
-                                os.remove(file_info.input_filepath)
-
-                            logger.info(f"덮어쓰기 성공")
+                        if file_info.input_filesize > file_info.output_filesize or os.path.splitext(file_info.input_filepath)[1] != os.path.splitext(file_info.output_filepath)[1]:
+                            replace_input_output(fileInfo=file_info)
                         else:
                             logger.info(f"원본 크기가 더 큽니다. 출력파일을 삭제합니다.")
                             os.remove(file_info.output_filepath)
+
+                            logger.info(f"스트림 복사 및 메타데이터를 삽입합니다.")
+                            ffmpeg_args = args_builder.add_stream_copy_args(ffmpegArgs=model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option))
+                            file_info = encoder.media_compress_encode(ffmpeg_args)
+                            replace_input_output(fileInfo=file_info)
                             file_info.output_filepath = file_info.input_filepath
                     except Exception as ex:
-                        logger.error(f"원본 파일 덮어쓰기 실패: \n{ex}")
+                        logger.error(f"Replace 작업 실패: \n{ex}")
 
         logger.info(f"처리완료\n최종 파일 정보: {pformat(file_info)}")
 

@@ -3,6 +3,9 @@ PROCESSER_NAME = "Automatic media compression processed"
 PROCESSER_TAG_END = "AMCP_END"
 
 
+STREAM_FILTER = ["png"]
+
+
 # 사용자 지정 파일확장자 필터
 FILE_EXT_FILTER_LIST = [
     ".3gp",
@@ -20,7 +23,6 @@ FILE_EXT_FILTER_LIST = [
     ".mp4",
     ".m4a",
     ".mp2",
-    ".mp3",
     ".ogg",
     ".mpg",
     ".mpeg",

@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 import ffmpeg
 
 from py_media_compressor.common import DictDataExtendBase
+from py_media_compressor.const import STREAM_FILTER
 from py_media_compressor.model import FileInfo, EncodeOption
 
 
@@ -12,9 +13,7 @@ class FFmpegArgs(DictDataExtendBase):
         assert isinstance(encodeOption, EncodeOption)
         assert isinstance(metadatas, dict)
 
-        # 사용자 정의 메타 데이터 사용 가능 (-movflags use_metadata_tags)
-        # 해당 옵션이 없으면 스트림 카피로도 메타 데이터가 누락됨
-        super().__init__(data={"movflags": "use_metadata_tags"})
+        super().__init__()
 
         self._metadatas = metadatas
         self._encode_option = encodeOption
@@ -25,7 +24,7 @@ class FFmpegArgs(DictDataExtendBase):
         self._video_stream = None
         self._audio_streams = []
         for stream in self.probe_info["streams"]:
-            if self._video_stream != None and stream["codec_type"] == "video" and stream["codec_name"] not in ["png"]:
+            if self._video_stream == None and stream["codec_type"] == "video" and stream["codec_name"] not in STREAM_FILTER:
                 self._video_stream = stream
             elif stream["codec_type"] == "audio":
                 self._audio_streams.append(stream)
@@ -69,4 +68,4 @@ class FFmpegArgs(DictDataExtendBase):
 
     @property
     def expected_ext(self) -> str:
-        return ".m4a" if self.is_only_audio else ".mkv"
+        return ".m4a" if self.is_only_audio else ".mp4"
