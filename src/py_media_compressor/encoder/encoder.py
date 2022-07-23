@@ -47,7 +47,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     streams = []
     for stm in ffmpegArgs.probe_info["streams"]:
-        if stm["codec_name"] not in STREAM_FILTER:
+        if stm["codec_type"] not in ["attachment"] and stm["codec_name"] not in STREAM_FILTER:
             streams.append(stream[str(stm["index"])])
 
     stream = ffmpeg.output(*streams, **ffmpeg_args_dict)
