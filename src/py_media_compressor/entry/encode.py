@@ -4,6 +4,7 @@ import warnings
 from tqdm import TqdmWarning, tqdm
 
 from py_media_compressor import log, encoder, model, utils
+from py_media_compressor.encoder import args_builder
 from py_media_compressor.utils import pformat
 from py_media_compressor.const import FILE_EXT_FILTER_LIST
 from py_media_compressor.model.enum import LogLevel, FileTaskStatus
@@ -143,25 +144,35 @@ def main():
         elif (is_skipped := file_info.status == FileTaskStatus.SKIPPED) or file_info.status == FileTaskStatus.SUCCESS:
             if not is_skipped:
                 if is_replace:
+
+                    def replace_input_output(fileInfo: model.FileInfo):
+                        dest_filepath = os.path.join(os.path.dirname(fileInfo.input_filepath), os.path.basename(fileInfo.output_filepath))
+                        src_filepath = fileInfo.output_filepath
+
+                        shutil.move(src_filepath, dest_filepath)
+                        fileInfo.output_filepath = dest_filepath
+
+                        utils.set_file_permission(fileInfo.output_filepath)
+
+                        if os.path.splitext(fileInfo.input_filepath)[1] != os.path.splitext(fileInfo.output_filepath)[1]:
+                            os.remove(fileInfo.input_filepath)
+
+                        logger.info(f"덮어쓰기 성공")
+
                     try:
-                        if file_info.input_filesize > file_info.output_filesize:
-                            dest_filepath = f"{os.path.splitext(file_info.input_filepath)[0]}{ext}"
-                            src_filepath = file_info.output_filepath
-                            file_info.output_filepath = dest_filepath
-
-                            shutil.move(src_filepath, dest_filepath)
-                            utils.set_file_permission(dest_filepath)
-
-                            if os.path.splitext(file_info.input_filepath)[1] != os.path.splitext(file_info.output_filepath)[1]:
-                                os.remove(file_info.input_filepath)
-
-                            logger.info(f"덮어쓰기 성공")
+                        if file_info.input_filesize > file_info.output_filesize or os.path.splitext(file_info.input_filepath)[1] != os.path.splitext(file_info.output_filepath)[1]:
+                            replace_input_output(fileInfo=file_info)
                         else:
                             logger.info(f"원본 크기가 더 큽니다. 출력파일을 삭제합니다.")
                             os.remove(file_info.output_filepath)
+
+                            logger.info(f"스트림 복사 및 메타데이터를 삽입합니다.")
+                            ffmpeg_args = args_builder.add_stream_copy_args(ffmpegArgs=model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option))
+                            file_info = encoder.media_compress_encode(ffmpeg_args)
+                            replace_input_output(fileInfo=file_info)
                             file_info.output_filepath = file_info.input_filepath
                     except Exception as ex:
-                        logger.error(f"원본 파일 덮어쓰기 실패: \n{ex}")
+                        logger.error(f"Replace 작업 실패: \n{ex}")
 
         logger.info(f"처리완료\n최종 파일 정보: {pformat(file_info)}")
 

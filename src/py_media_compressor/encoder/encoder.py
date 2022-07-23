@@ -9,7 +9,7 @@ from tqdm import tqdm
 from py_media_compressor import log, utils
 from py_media_compressor.common import progress
 from py_media_compressor.const import STREAM_FILTER
-from py_media_compressor.encoder import add_args
+from py_media_compressor.encoder import add_auto_args
 from py_media_compressor.model import FileInfo, FFmpegArgs
 from py_media_compressor.model.enum import FileTaskStatus, LogLevel
 from py_media_compressor.utils import pformat
@@ -28,7 +28,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     logger = log.get_logger(media_compress_encode)
 
     if ffmpegArgs.file_info.status == FileTaskStatus.INIT:
-        add_args(ffmpegArgs=ffmpegArgs)
+        add_auto_args(ffmpegArgs=ffmpegArgs)
         logger.debug("ffmpeg 인자 자동 생성 완료")
 
     if logger.isEnabledFor(LogLevel.INFO):
