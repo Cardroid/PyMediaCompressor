@@ -130,8 +130,8 @@ def main():
 
         try:
             ext = ffmpeg_args.expected_ext
-        except Exception:
-            logger.error("출력 파일 확장자를 추정할 수 없습니다. 해당 파일을 건너뜁니다.")
+        except Exception as ex:
+            logger.error(f"출력 파일 확장자를 추정할 수 없습니다. Skipped.\nException: {pformat(ex)}\nFFmpegArgs: {pformat(ffmpeg_args)}")
             continue
 
         ffmpeg_args.file_info.output_filepath = os.path.join(output_dirpath, f"{os.path.splitext(os.path.basename(ffmpeg_args.file_info.input_filepath))[0]}{ext}")
