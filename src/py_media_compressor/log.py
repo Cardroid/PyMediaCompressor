@@ -79,6 +79,7 @@ def get_default_config() -> Dict:
         using_root_handlers.append("console")
     if SETTINGS["use_rotatingfile"]:
         using_root_handlers.append("file")
+        using_root_handlers.append("warn_file")
 
     get_fullname = lambda c: c.__qualname__ if (module := c.__module__) == "builtins" else module + "." + c.__qualname__
 
@@ -93,6 +94,11 @@ def get_default_config() -> Dict:
             "dest_file_filter": {
                 "()": get_fullname(HandlerDestFilter),
                 "mode": LogDestination.FILE.name,
+            },
+            "warn_dest_file_filter": {
+                "()": get_fullname(HandlerDestFilter),
+                "mode": LogDestination.FILE.name,
+                "logLevel": LogLevel.WARNING.name,
             },
         },
         "formatters": {
@@ -120,12 +126,25 @@ def get_default_config() -> Dict:
                 "filters": ["dest_console_filter"],
             },
             "file": {
-                "()": get_fullname(logging.handlers.RotatingFileHandler),
+                "()": get_fullname(logging.handlers.TimedRotatingFileHandler),
                 "formatter": "detail",
                 "filters": ["dest_file_filter"],
                 "filename": os.path.join(SETTINGS["dir"], "output.log"),
-                "maxBytes": 20 * 1024 * 1024,  # 20MB
-                "backupCount": 10,
+                # "maxBytes": 20 * 1024 * 1024,  # 20MB
+                "when": "H",
+                "interval": 12,
+                "backupCount": 20,
+                "encoding": "utf-8",
+            },
+            "warn_file": {
+                "()": get_fullname(logging.handlers.TimedRotatingFileHandler),
+                "formatter": "detail",
+                "filters": ["warn_dest_file_filter"],
+                "filename": os.path.join(SETTINGS["dir"], "error.log"),
+                # "maxBytes": 20 * 1024 * 1024,  # 20MB
+                "when": "H",
+                "interval": 12,
+                "backupCount": 30,
                 "encoding": "utf-8",
             },
         },
@@ -174,7 +193,7 @@ def root_logger_setup():
 class HandlerDestFilter(logging.Filter):
     LINE_FORMATTER_REGEX = re.compile(r"\n(?!\t-> )")
 
-    def __init__(self, name: str = "", mode: Union[int, str, LogDestination] = LogDestination.ALL) -> None:
+    def __init__(self, name: str = "", mode: Union[int, str, LogDestination] = LogDestination.ALL, logLevel: Union[int, str, LogLevel] = LogLevel.DEFAULT) -> None:
         super().__init__(name)
 
         if isinstance(mode, int):
@@ -187,7 +206,20 @@ class HandlerDestFilter(logging.Filter):
             assert mode in LogDestination, f"지원하지 않는 mode 입니다."
             self.mode = mode
 
+        if isinstance(logLevel, int):
+            assert LogLevel.has_value(logLevel), f"지원하지 않는 LogLevel 입니다."
+            self.log_level = LogLevel(logLevel)
+        elif isinstance(logLevel, str):
+            assert LogLevel.has_name(logLevel), f"지원하지 않는 LogLevel 입니다."
+            self.log_level = LogLevel[logLevel]
+        else:
+            assert logLevel in LogLevel, f"지원하지 않는 LogLevel 입니다."
+            self.log_level = logLevel
+
     def filter(self, record: logging.LogRecord):
+        if record.levelno < self.log_level:
+            return False
+
         self._format_line(record=record)
         if len(record.args) > 0 and isinstance(dest := record.args.get("dest"), LogDestination):
             del record.args["dest"]
