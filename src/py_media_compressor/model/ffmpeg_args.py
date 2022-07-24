@@ -23,7 +23,12 @@ class FFmpegArgs(DictDataExtendBase):
 
         self._video_stream = None
         self._audio_streams = []
-        for stream in self.probe_info["streams"]:
+
+        streams = self.probe_info.get("streams")
+
+        assert streams != None, "스트림을 불러올 수 없습니다."
+
+        for stream in streams:
             if self._video_stream == None and stream["codec_type"] == "video" and stream["codec_name"] not in STREAM_FILTER:
                 self._video_stream = stream
             elif stream["codec_type"] == "audio":
