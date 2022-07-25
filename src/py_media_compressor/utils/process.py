@@ -40,6 +40,10 @@ def process_wait(process: subprocess.Popen):
 
     p_process = psutil.Process(process_id)
 
+    is_process_ended = False
+    is_pause = False
+    result = None
+
     q = Queue()
 
     if platform.system() == "Windows":
@@ -47,28 +51,29 @@ def process_wait(process: subprocess.Popen):
         import msvcrt
 
         def getkey():
-            """단일키 누르는 것을 받아옴"""
-            return msvcrt.getch()
+            if msvcrt.kbhit():
+                return msvcrt.getch()
 
     else:
         # Linux & Mac 용 코드
-        import sys
-        import tty
-        import termios
+        import sys, select, tty, termios
+
+        def isData():
+            return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
 
         def getkey():
-            """단일키 누르는 것을 받아옴"""
-            fd = sys.stdin.fileno()
-            original_attributes = termios.tcgetattr(fd)
+            original_attributes = termios.tcgetattr(sys.stdin)
+            ch = None
             try:
-                tty.setraw(sys.stdin.fileno())
-                ch = sys.stdin.read(1)
+                tty.setcbreak(sys.stdin.fileno())
+                if isData():
+                    ch = sys.stdin.read(1)
             finally:
-                termios.tcsetattr(fd, termios.TCSADRAIN, original_attributes)
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, original_attributes)
             return ch
 
     def wait_input():
-        while p_process.is_running():
+        while not is_process_ended:
             key = getkey()
             if key == b"p":
                 q.put("pause")
@@ -79,9 +84,6 @@ def process_wait(process: subprocess.Popen):
 
     input_thread = threading.Thread(target=wait_input)
     input_thread.start()
-
-    is_pause = False
-    result = None
 
     while p_process.is_running():
         if q.empty():
@@ -99,6 +101,7 @@ def process_wait(process: subprocess.Popen):
                 p_process.kill()
                 result = "suspend"
 
+    is_process_ended = True
     input_thread.join()
 
     return (process.returncode, result)
