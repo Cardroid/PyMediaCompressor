@@ -118,7 +118,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
             Thread(target=msg_reader, args=[msg_queue, temp_msg_storage]).start()
 
-            code, result = utils.process_wait(process)
+            code, result = utils.process_control_wait(process)
 
             if code != 0:
                 if result == "suspend":
@@ -145,7 +145,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
             _, stderr = process.communicate()
             utils.set_low_process_priority(process.pid)
 
-            code, result = utils.process_wait(process)
+            code, result = utils.process_control_wait(process)
 
             if code != 0:
                 if result == "suspend":

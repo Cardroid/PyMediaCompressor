@@ -117,7 +117,7 @@ class KBHit:
             return dr != []
 
 
-def process_wait(process: subprocess.Popen):
+def process_control_wait(process: subprocess.Popen):
     """프로세스를 조작가능한 상태로 종료를 기다립니다.
     비동기적 입력 코드는 https://stackoverflow.com/a/2409034/12745351 이곳에서 참고했습니다.
 
@@ -131,6 +131,7 @@ def process_wait(process: subprocess.Popen):
 
     p_process = psutil.Process(process_id)
 
+    exit_code_dict = {}
     is_process_ended = False
     is_pause = False
     result = None
@@ -148,7 +149,12 @@ def process_wait(process: subprocess.Popen):
 
         kb.set_normal_term()
 
+    def process_wait(exit_code_dict):
+        exit_code_dict["code"] = process.wait()
+
+    process_wait_thread = threading.Thread(target=process_wait, args=[exit_code_dict])
     input_thread = threading.Thread(target=wait_input)
+    process_wait_thread.start()
     input_thread.start()
 
     try:
@@ -170,9 +176,10 @@ def process_wait(process: subprocess.Popen):
         result = "suspend"
 
     is_process_ended = True
+    process_wait_thread.join()
     input_thread.join()
 
-    return (process.returncode, result)
+    return (exit_code_dict.get("code"), result)
 
 
 def set_low_process_priority(processid: int):
