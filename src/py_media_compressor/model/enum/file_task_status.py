@@ -9,6 +9,7 @@ class FileTaskStatus(Enum):
     SKIPPED = auto()  # 스킵
     SUCCESS = auto()  # 성공
     ERROR = auto()  # 오류
+    SUSPEND = auto()  # 중단됨
 
     @classmethod
     def has_value(cls, value: int) -> bool:

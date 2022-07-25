@@ -183,6 +183,9 @@ def main():
                             file_info.output_filepath = file_info.input_filepath
                     except Exception as ex:
                         logger.error(f"Replace 작업 실패: \n{ex}")
+        if file_info.status == FileTaskStatus.SUSPEND:
+            logger.warning(f"사용자에 의해 모든 작업이 중단됨. \nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}")
+            break
 
         logger.info(f"처리완료\n최종 파일 정보: {pformat(file_info)}")
 
