@@ -156,7 +156,7 @@ def main():
                 if is_replace:
 
                     def replace_input_output(fileInfo: model.FileInfo):
-                        dest_filepath = os.path.join(os.path.dirname(fileInfo.input_filepath), os.path.basename(fileInfo.output_filepath))
+                        dest_filepath = os.path.splitext(fileInfo.input_filepath)[0] + os.path.splitext(fileInfo.output_filepath)[1]
                         src_filepath = fileInfo.output_filepath
 
                         shutil.move(src_filepath, dest_filepath)
@@ -164,7 +164,7 @@ def main():
 
                         utils.set_file_permission(fileInfo.output_filepath)
 
-                        if os.path.splitext(fileInfo.input_filepath)[1] != os.path.splitext(fileInfo.output_filepath)[1]:
+                        if os.path.basename(fileInfo.input_filepath) != os.path.basename(fileInfo.output_filepath):
                             os.remove(fileInfo.input_filepath)
 
                         logger.info(f"덮어쓰기 성공")
