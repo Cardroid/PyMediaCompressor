@@ -146,6 +146,7 @@ def process_control_wait(process: subprocess.Popen):
                 key = kb.getch()
                 if key == "p":
                     q.put("pause")
+            time.sleep(0.1)
 
         kb.set_normal_term()
 
@@ -160,7 +161,7 @@ def process_control_wait(process: subprocess.Popen):
     try:
         while p_process.is_running():
             if q.empty():
-                time.sleep(1)
+                time.sleep(0.1)
             else:
                 msg = q.get()
                 if msg == "pause":
