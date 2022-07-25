@@ -36,6 +36,15 @@ def check_command_availability(command: str) -> Tuple[bool, str, str]:
 
 
 def process_wait(process: subprocess.Popen):
+    """프로세스를 조작가능한 상태로 종료를 기다립니다.
+    비동기적 입력 코드는 https://stackoverflow.com/a/2409034/12745351 이곳에서 참고했습니다.
+
+    Args:
+        process (subprocess.Popen): 프로세스
+
+    Returns:
+        tuple[int | Any, str | None]: 프로세스 종료 코드, 종료 상태
+    """
     process_id = process.pid
 
     p_process = psutil.Process(process_id)
