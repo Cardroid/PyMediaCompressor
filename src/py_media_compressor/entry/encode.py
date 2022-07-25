@@ -119,14 +119,14 @@ def main():
     )
 
     ffmpeg_args: model.FFmpegArgs
-    for file_info in (ffmpeg_args_tqdm := tqdm(file_infos, leave=False, dynamic_ncols=True)):
+    for file_info in (file_info_tqdm := tqdm(file_infos, leave=False, dynamic_ncols=True)):
+        file_info_tqdm.set_description(f"Processing... {os.path.basename(file_info.input_filepath)}")
+
         try:
             ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option)
         except Exception as ex:
             logger.error(f"파일 정보를 불러오는 도중 오류가 발생했습니다. Skipped.\nException: {pformat(ex)}\nFileInfo: {pformat(ffmpeg_args)}")
             continue
-
-        ffmpeg_args_tqdm.set_postfix(filename=os.path.basename(ffmpeg_args.file_info.input_filepath))
 
         try:
             ext = ffmpeg_args.expected_ext

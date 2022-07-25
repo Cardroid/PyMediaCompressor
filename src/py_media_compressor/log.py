@@ -132,7 +132,7 @@ def get_default_config() -> Dict:
                 "filename": os.path.join(SETTINGS["dir"], "output.log"),
                 # "maxBytes": 20 * 1024 * 1024,  # 20MB
                 "when": "H",
-                "interval": 12,
+                "interval": 6,
                 "backupCount": 20,
                 "encoding": "utf-8",
             },
@@ -143,7 +143,7 @@ def get_default_config() -> Dict:
                 "filename": os.path.join(SETTINGS["dir"], "error.log"),
                 # "maxBytes": 20 * 1024 * 1024,  # 20MB
                 "when": "H",
-                "interval": 12,
+                "interval": 6,
                 "backupCount": 30,
                 "encoding": "utf-8",
             },
