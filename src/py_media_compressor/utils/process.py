@@ -35,6 +35,88 @@ def check_command_availability(command: str) -> Tuple[bool, str, str]:
     return (result, string_decode(stdout), string_decode(stderr), exception)
 
 
+# Windows
+if platform.system() == "Windows":
+    import msvcrt
+
+# Posix (Linux, OS X)
+else:
+    import sys
+    import termios
+    import atexit
+    from select import select
+
+"""
+https://stackoverflow.com/a/22085679/12745351
+
+A Python class implementing KBHIT, the standard keyboard-interrupt poller.
+Works transparently on Windows and Posix (Linux, Mac OS X).  Doesn't work
+with IDLE.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as 
+published by the Free Software Foundation, either version 3 of the 
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+"""
+
+
+class KBHit:
+    def __init__(self):
+        """Creates a KBHit object that you can call to do various keyboard things."""
+
+        if platform.system() == "Windows":
+            pass
+
+        else:
+
+            # Save the terminal settings
+            self.fd = sys.stdin.fileno()
+            self.new_term = termios.tcgetattr(self.fd)
+            self.old_term = termios.tcgetattr(self.fd)
+
+            # New terminal setting unbuffered
+            self.new_term[3] = self.new_term[3] & ~termios.ICANON & ~termios.ECHO
+            termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.new_term)
+
+            # Support normal-terminal reset at exit
+            atexit.register(self.set_normal_term)
+
+    def set_normal_term(self):
+        """Resets to normal terminal.  On Windows this is a no-op."""
+
+        if platform.system() == "Windows":
+            pass
+
+        else:
+            termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.old_term)
+
+    def getch(self):
+        """Returns a keyboard character after kbhit() has been called.
+        Should not be called in the same program as getarrow().
+        """
+
+        if platform.system() == "Windows":
+            return msvcrt.getch().decode("utf-8")
+
+        else:
+            return sys.stdin.read(1)
+
+    def kbhit(self):
+        """Returns True if keyboard character was hit, False otherwise."""
+        if platform.system() == "Windows":
+            return msvcrt.kbhit()
+
+        else:
+            dr, dw, de = select([sys.stdin], [], [], 0)
+            return dr != []
+
+
 def process_wait(process: subprocess.Popen):
     """프로세스를 조작가능한 상태로 종료를 기다립니다.
     비동기적 입력 코드는 https://stackoverflow.com/a/2409034/12745351 이곳에서 참고했습니다.
@@ -55,60 +137,37 @@ def process_wait(process: subprocess.Popen):
 
     q = Queue()
 
-    if platform.system() == "Windows":
-        # Windows용 코드
-        import msvcrt
-
-        def getkey():
-            if msvcrt.kbhit():
-                return msvcrt.getch()
-
-    else:
-        # Linux & Mac 용 코드
-        import sys, select, tty, termios
-
-        def isData():
-            return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
-
-        def getkey():
-            original_attributes = termios.tcgetattr(sys.stdin)
-            ch = None
-            try:
-                tty.setcbreak(sys.stdin.fileno())
-                if isData():
-                    ch = sys.stdin.read(1)
-            finally:
-                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, original_attributes)
-            return ch
-
     def wait_input():
+        kb = KBHit()
+
         while not is_process_ended:
-            key = getkey()
-            if key == b"p":
-                q.put("pause")
-                time.sleep(1)
-            elif key == b"\x03":
-                q.put("suspend")
-            time.sleep(1)
+            if kb.kbhit():
+                key = kb.getch()
+                if key == "p":
+                    q.put("pause")
+
+        kb.set_normal_term()
 
     input_thread = threading.Thread(target=wait_input)
     input_thread.start()
 
-    while p_process.is_running():
-        if q.empty():
-            time.sleep(1)
-        else:
-            msg = q.get()
-            if msg == "pause":
-                if is_pause:
-                    p_process.resume()
-                    is_pause = False
-                else:
-                    p_process.suspend()
-                    is_pause = True
-            elif msg == "suspend":
-                p_process.kill()
-                result = "suspend"
+    try:
+        while p_process.is_running():
+            if q.empty():
+                time.sleep(1)
+            else:
+                msg = q.get()
+                if msg == "pause":
+                    if is_pause:
+                        p_process.resume()
+                        is_pause = False
+                    else:
+                        p_process.suspend()
+                        is_pause = True
+    except KeyboardInterrupt:
+        if p_process.is_running():
+            p_process.kill()
+        result = "suspend"
 
     is_process_ended = True
     input_thread.join()
