@@ -79,7 +79,8 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                 for key, value in msg.items():
                     if key in ["frame", "fps", "total_size", "bitrate", "out_time", "speed", "dup_frames", "drop_frames"]:
                         if key == "total_size":
-                            value = bitmath.best_prefix(int(value), system=bitmath.SI)
+                            p_value = str(bitmath.best_prefix(int(value), system=bitmath.SI)).split(" ")
+                            value = f"{round(float(p_value[0]), 1)} {p_value[1]}"
                         elif key == "out_time":
                             value = value.split(".")[0]
                         elif key == "dup_frames" and value == "0":
