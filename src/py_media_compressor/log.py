@@ -10,6 +10,7 @@ import colorlog
 
 from py_media_compressor import utils
 from py_media_compressor.model.enum import LogDestination, LogLevel
+from py_media_compressor.utils import pformat
 from py_media_compressor.version import package_name
 
 
@@ -160,32 +161,38 @@ def get_default_config() -> Dict:
 def root_logger_setup():
     global SETTINGS
 
-    is_config_load_from_file = False
-    exception = None
-
     if not utils.is_str_empty_or_space(SETTINGS["config_filepath"]):
         try:
             config = utils.load_config(SETTINGS["config_filepath"])
-            is_config_load_from_file = True
+
+            is_enabled = config.get("enabled")
+            if is_enabled == None:
+                is_enabled = True
+            else:
+                del config["enabled"]
+
+            if is_enabled:
+                logging.config.dictConfig(config)
+            else:
+                logging.root.addHandler(logging.NullHandler())
+
+            if is_enabled and not logging.root.hasHandlers():
+                raise Exception("하나 이상의 Log Handler가 필요합니다.")
+
+            logger = get_logger(root_logger_setup)
+
+            logger.debug(f"설정 파일 로드 완료")
         except Exception as ex:
-            exception = ex
+            is_enabled = True
+            config = get_default_config()
+            logging.config.dictConfig(config)
 
-    if not is_config_load_from_file:
-        config = get_default_config()
+            logger = get_logger(root_logger_setup)
 
-    logging.config.dictConfig(config)
-
-    logger = logging.getLogger("log")
-    logger.setLevel(SETTINGS["level"].value)
-
-    if is_config_load_from_file:
-        logger.debug(f"설정 파일 로드 완료")
-    elif exception != None:
-        logger.warning(f"설정 파일 로드 오류, 기본 설정 사용됨 \n{exception}")
-    else:
-        logger.debug(f"기본 설정 로드 완료")
+            logger.warning(f"설정 파일 로드 오류, 기본 설정이 사용됩니다.\n{pformat(ex)}")
 
     if not utils.is_str_empty_or_space(SETTINGS["config_filepath"]):
+        config["enabled"] = is_enabled
         utils.save_config(config, SETTINGS["config_filepath"])
         logger.debug(f"설정 파일 저장 완료")
 
