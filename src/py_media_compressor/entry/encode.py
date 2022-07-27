@@ -178,6 +178,7 @@ def main():
 
                             logger.info(f"스트림 복사 및 메타데이터를 삽입합니다.")
                             ffmpeg_args = args_builder.add_stream_copy_args(ffmpegArgs=model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option))
+                            ffmpeg_args = args_builder.add_metadata_args(ffmpegArgs=ffmpeg_args)
                             file_info = encoder.media_compress_encode(ffmpeg_args)
                             replace_input_output(fileInfo=file_info)
                             file_info.output_filepath = file_info.input_filepath
