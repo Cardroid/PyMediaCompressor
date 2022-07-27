@@ -11,7 +11,7 @@ from py_media_compressor.common import progress
 from py_media_compressor.const import STREAM_FILTER
 from py_media_compressor.encoder import add_auto_args
 from py_media_compressor.model import FileInfo, FFmpegArgs
-from py_media_compressor.model.enum import FileTaskStatus, LogLevel
+from py_media_compressor.model.enum import FileTaskStatus, LogLevel, LogDestination
 from py_media_compressor.utils import pformat
 
 
@@ -155,7 +155,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                 else:
                     raise Exception(f"프로세스가 올바르게 종료되지 않았습니다.\nstderr: {utils.string_decode(stderr)}")
 
-            logger.info(utils.string_decode(stderr))
+            logger.info(utils.string_decode(stderr), {"dest": LogDestination.CONSOLE})
             utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
             ffmpegArgs.file_info.status = FileTaskStatus.SUCCESS
             return ffmpegArgs.file_info
