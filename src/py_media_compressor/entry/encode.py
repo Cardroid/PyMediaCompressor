@@ -150,7 +150,7 @@ def main():
         file_info = encoder.media_compress_encode(ffmpeg_args)
 
         if file_info.status == FileTaskStatus.ERROR:
-            logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다. \nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}")
+            logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}")
         elif (is_skipped := file_info.status == FileTaskStatus.SKIPPED) or file_info.status == FileTaskStatus.SUCCESS:
             if not is_skipped:
                 if is_replace:
@@ -177,16 +177,20 @@ def main():
                             os.remove(file_info.output_filepath)
 
                             logger.info(f"스트림 복사 및 메타데이터를 삽입합니다.")
-                            ffmpeg_args = args_builder.add_stream_copy_args(ffmpegArgs=model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option))
-                            ffmpeg_args = args_builder.add_metadata_args(ffmpegArgs=ffmpeg_args)
-                            file_info = encoder.media_compress_encode(ffmpeg_args)
+                            file_info.status = FileTaskStatus.INIT
+                            ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option)
+                            args_builder.add_stream_copy_args(ffmpegArgs=ffmpeg_args)
+                            args_builder.add_metadata_args(ffmpegArgs=ffmpeg_args)
+                            file_info = encoder.media_compress_encode(ffmpegArgs=ffmpeg_args)
                             replace_input_output(fileInfo=file_info)
                             file_info.output_filepath = file_info.input_filepath
                     except Exception as ex:
-                        logger.error(f"Replace 작업 실패: \nException: {pformat(ex)}")
-        if file_info.status == FileTaskStatus.SUSPEND:
-            logger.warning(f"사용자에 의해 모든 작업이 중단됨. \nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}")
+                        logger.error(f"Replace 작업 실패\nException: {pformat(ex)}")
+        elif file_info.status == FileTaskStatus.SUSPEND:
+            logger.warning(f"사용자에 의해 모든 작업이 중단됨.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}")
             break
+        else:
+            logger.error(f"상태가 올바르지 않은 작업이 있습니다.\nFileInfo: {file_info}")
 
         logger.info(f"처리완료\n최종 파일 정보: {pformat(file_info)}")
 
