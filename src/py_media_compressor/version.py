@@ -1,3 +1,3 @@
 package_name = "py_media_compressor"
-version = "1.4.8"
+version = "1.4.9"
 metadata_version = 1
