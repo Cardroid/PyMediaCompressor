@@ -45,10 +45,16 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath)
 
+    ignored_streams = []
     streams = []
     for stm in ffmpegArgs.probe_info["streams"]:
-        if stm["codec_type"] not in ["attachment", "data"] and stm["codec_name"] not in STREAM_FILTER:
+        if str(stm["codec_type"]).lower() in ["video", "audio"] and str(stm["codec_name"]).lower() not in STREAM_FILTER:
             streams.append(stream[str(stm["index"])])
+        else:
+            ignored_streams.append(stm)
+
+    if len(ignored_streams) > 0:
+        logger.warning(f"무시된 스트림이 존재합니다.\nIgnored Streams: {pformat(ignored_streams)}\nFileInfo: {pformat(ffmpegArgs.file_info)}")
 
     stream = ffmpeg.output(*streams, **ffmpeg_args_dict)
 
