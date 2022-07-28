@@ -95,7 +95,7 @@ def main():
     logger.info(f"출력 디렉토리: {output_dirpath}")
     os.makedirs(output_dirpath, exist_ok=True)
 
-    log.LogDest = log.LogDestination.FILE
+    # log.LogDest = log.LogDestination.FILE
 
     is_replace = args["replace"]
     is_force = args["force"]

@@ -7,6 +7,7 @@ import logging.config
 from typing import Dict, Union, Callable
 
 import colorlog
+import tqdm
 
 from py_media_compressor import utils
 from py_media_compressor.model.enum import LogDestination, LogLevel
@@ -122,9 +123,10 @@ def get_default_config() -> Dict:
         },
         "handlers": {
             "console": {
-                "()": get_fullname(logging.StreamHandler),
+                "()": get_fullname(ConsoleLoggingHandler),
                 "formatter": "colored_console",
                 "filters": ["dest_console_filter"],
+                "useTqdm": True,
             },
             "file": {
                 "()": get_fullname(logging.handlers.TimedRotatingFileHandler),
@@ -195,6 +197,25 @@ def root_logger_setup():
         config["enabled"] = is_enabled
         utils.save_config(config, SETTINGS["config_filepath"])
         logger.debug(f"설정 파일 저장 완료")
+
+
+# 출처: https://stackoverflow.com/a/38739634/12745351
+# 수정해서 사용함
+class ConsoleLoggingHandler(logging.StreamHandler):
+    def __init__(self, useTqdm: bool = True):
+        super().__init__()
+        self._use_tqdm = useTqdm
+
+    def emit(self, record):
+        if self._use_tqdm:
+            try:
+                msg = self.format(record)
+                tqdm.tqdm.write(msg)
+                self.flush()
+            except Exception:
+                self.handleError(record)
+        else:
+            super().emit(record)
 
 
 class HandlerDestFilter(logging.Filter):
