@@ -101,7 +101,7 @@ def set_file_permission(path: str, permissions=0o775):
 def save_config(config: Dict, filepath: str):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, "w", encoding="utf-8") as f:
-        yaml.dump(config, f, Dumper=yaml.Dumper, width=100)
+        yaml.dump(config, f, Dumper=yaml.Dumper, width=100, sort_keys=False)
     set_file_permission(filepath)
 
 

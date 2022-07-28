@@ -1,7 +1,8 @@
 import os
 import queue
 from threading import Thread
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
+
 import bitmath
 import ffmpeg
 from tqdm import tqdm
@@ -11,7 +12,7 @@ from py_media_compressor.common import progress
 from py_media_compressor.const import STREAM_FILTER
 from py_media_compressor.encoder import add_auto_args
 from py_media_compressor.model import FileInfo, FFmpegArgs
-from py_media_compressor.model.enum import FileTaskStatus, LogLevel
+from py_media_compressor.model.enum import FileTaskStatus, LogLevel, LogDestination
 from py_media_compressor.utils import pformat
 
 
@@ -19,7 +20,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     """미디어를 압축합니다.
 
     Args:
-        ffmpegArgs (FFmpegArgs): 인코더, 파일 소스를 포함한 인자
+        ffmpegArgs (FFmpegArgs): 인코더, 파일 소스를 포함한 인수
 
     Returns:
         FileInfo: 파일 정보
@@ -29,7 +30,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     if ffmpegArgs.file_info.status == FileTaskStatus.INIT:
         add_auto_args(ffmpegArgs=ffmpegArgs)
-        logger.debug("ffmpeg 인자 자동 생성 완료")
+        logger.debug("ffmpeg 인수 자동 생성 완료")
 
     if logger.isEnabledFor(LogLevel.INFO):
         logger.info(f"현재 작업 파일 정보: \n{pformat(ffmpegArgs.get_all_in_one_dict())}")
@@ -41,14 +42,22 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
         logger.error(f"해당 작업의 상태가 올비르지 않습니다. Skipped.")
         return ffmpegArgs.file_info
 
+    ffmpegArgs.file_info.status = FileTaskStatus.PROCESSING
+
     ffmpeg_args_dict = ffmpegArgs.as_dict()
 
     stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath)
 
+    ignored_streams = []
     streams = []
     for stm in ffmpegArgs.probe_info["streams"]:
-        if stm["codec_name"] not in STREAM_FILTER:
+        if str(stm["codec_type"]).lower() in ["video", "audio"] and str(stm["codec_name"]).lower() not in STREAM_FILTER:
             streams.append(stream[str(stm["index"])])
+        else:
+            ignored_streams.append(stm)
+
+    if len(ignored_streams) > 0:
+        logger.warning(f"무시된 스트림이 존재합니다.\nIgnored Streams: {pformat(ignored_streams)}\nFileInfo: {pformat(ffmpegArgs.file_info)}")
 
     stream = ffmpeg.output(*streams, **ffmpeg_args_dict)
 
@@ -79,7 +88,8 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                 for key, value in msg.items():
                     if key in ["frame", "fps", "total_size", "bitrate", "out_time", "speed", "dup_frames", "drop_frames"]:
                         if key == "total_size":
-                            value = bitmath.best_prefix(int(value), system=bitmath.SI)
+                            p_value = str(bitmath.best_prefix(int(value), system=bitmath.SI)).split(" ")
+                            value = f"{round(float(p_value[0]), 1)} {p_value[1]}"
                         elif key == "out_time":
                             value = value.split(".")[0]
                         elif key == "dup_frames" and value == "0":
@@ -98,7 +108,11 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
         bar.close()
 
     def error_output_check(ffmpegArgs: FFmpegArgs):
-        if ffmpegArgs.encode_option.remove_error_output and ffmpegArgs.file_info.status == FileTaskStatus.ERROR and os.path.isfile(ffmpegArgs.file_info.output_filepath):
+        if (
+            ffmpegArgs.encode_option.remove_error_output
+            and (ffmpegArgs.file_info.status == FileTaskStatus.ERROR or ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND)
+            and os.path.isfile(ffmpegArgs.file_info.output_filepath)
+        ):
             os.remove(ffmpegArgs.file_info.output_filepath)
             logger.info(f"오류가 발생한 출력파일을 제거했습니다. Path: {ffmpegArgs.file_info.output_filepath}")
         return ffmpegArgs.file_info
@@ -114,16 +128,25 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
             Thread(target=msg_reader, args=[msg_queue, temp_msg_storage]).start()
 
-            if process.wait() != 0:
-                raise Exception("프로세스가 올바르게 종료되지 않았습니다.")
+            code, result = utils.process_control_wait(process)
+
+            if code != 0:
+                if result == "suspend":
+                    ffmpegArgs.file_info.status = FileTaskStatus.SUSPEND
+                    raise Exception("사용자 입력에 의해 취소되었습니다.")
+                else:
+                    raise Exception("프로세스가 올바르게 종료되지 않았습니다.")
 
             utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
             ffmpegArgs.file_info.status = FileTaskStatus.SUCCESS
             return ffmpegArgs.file_info
 
         except Exception as err:
-            ffmpegArgs.file_info.status = FileTaskStatus.ERROR
-            logger.error(f"미디어 처리 오류: \n{pformat(temp_msg_storage)}\n{err}")
+            if ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND:
+                logger.warning(pformat(err))
+            else:
+                ffmpegArgs.file_info.status = FileTaskStatus.ERROR
+                logger.error(f"미디어 처리 중 예외 발생: \n{pformat(temp_msg_storage)}\n{err}")
             utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
             return error_output_check(ffmpegArgs)
     else:
@@ -132,27 +155,36 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
             _, stderr = process.communicate()
             utils.set_low_process_priority(process.pid)
 
-            if process.poll() != 0:
-                raise ffmpeg.Error("ffmpeg", "", stderr)
+            code, result = utils.process_control_wait(process)
 
-            logger.info(utils.string_decode(stderr))
+            if code != 0:
+                if result == "suspend":
+                    ffmpegArgs.file_info.status = FileTaskStatus.SUSPEND
+                    raise Exception("사용자 입력에 의해 취소되었습니다.")
+                else:
+                    raise Exception(f"프로세스가 올바르게 종료되지 않았습니다.\nstderr: {utils.string_decode(stderr)}")
+
+            logger.info(utils.string_decode(stderr), {"dest": LogDestination.CONSOLE})
             utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
             ffmpegArgs.file_info.status = FileTaskStatus.SUCCESS
             return ffmpegArgs.file_info
 
-        except ffmpeg.Error as err:
-            ffmpegArgs.file_info.status = FileTaskStatus.ERROR
-            logger.error(utils.string_decode(err.stderr))
+        except Exception as err:
+            if ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND:
+                logger.warning(pformat(err))
+            else:
+                ffmpegArgs.file_info.status = FileTaskStatus.ERROR
+                logger.error(f"미디어 처리 중 예외 발생: \n{pformat(err)}")
             utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
             return error_output_check(ffmpegArgs)
 
 
-def get_source_file(inputPaths: List[str], mediaExtFilter: List[str] = None, useProgressbar=False, leave=True) -> Tuple[List, int, int]:
+def get_source_file(inputPaths: List[str], mediaExtFilter: Union[List[str], None] = None, useProgressbar=False, leave=True) -> Tuple[List, int, int]:
     """입력 경로에서 소스파일을 검색합니다.
 
     Args:
         inputPaths (List[str]): 입력 경로
-        mediaExtFilter (List[str], optional): 미디어 확장자 필터. Defaults to None.
+        mediaExtFilter (Union[List[str], None], optional): 미디어 확장자 필터. Defaults to None.
         useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
         leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
 

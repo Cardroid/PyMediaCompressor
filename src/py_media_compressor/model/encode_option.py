@@ -6,8 +6,8 @@ class EncodeOption(DictDataBase):
         self,
         maxHeight: int = 1440,
         isForce: bool = False,
-        compressionMode: str = "h.265",
-        crf: int = 26,
+        compressionMode: str = "h.264",
+        crf: int = 23,
         removeErrorOutput: bool = True,
         useProgressbar: bool = False,
         leave: bool = True,
@@ -17,8 +17,8 @@ class EncodeOption(DictDataBase):
         Args:
             maxHeight (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
             isForce (bool, optional): 이미 처리된 미디어 파일을 강제적으로 재처리합니다. Defaults to False.
-            compressionMode (str, optional): 압축 모드. Defaults to "h.265".
-            crf (int, optional): 압축 crf 값. Defaults to 24.
+            compressionMode (str, optional): 압축 모드. Defaults to "h.264".
+            crf (int, optional): 압축 crf 값. Defaults to 23.
             removeErrorOutput (bool, optional): 정상적으로 압축하지 못했을 경우 출력 파일을 삭제합니다. Defaults to True.
             useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
             leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.

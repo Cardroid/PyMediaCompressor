@@ -7,9 +7,11 @@ import logging.config
 from typing import Dict, Union, Callable
 
 import colorlog
+import tqdm
 
 from py_media_compressor import utils
 from py_media_compressor.model.enum import LogDestination, LogLevel
+from py_media_compressor.utils import pformat
 from py_media_compressor.version import package_name
 
 
@@ -79,6 +81,7 @@ def get_default_config() -> Dict:
         using_root_handlers.append("console")
     if SETTINGS["use_rotatingfile"]:
         using_root_handlers.append("file")
+        using_root_handlers.append("warn_file")
 
     get_fullname = lambda c: c.__qualname__ if (module := c.__module__) == "builtins" else module + "." + c.__qualname__
 
@@ -93,6 +96,11 @@ def get_default_config() -> Dict:
             "dest_file_filter": {
                 "()": get_fullname(HandlerDestFilter),
                 "mode": LogDestination.FILE.name,
+            },
+            "warn_dest_file_filter": {
+                "()": get_fullname(HandlerDestFilter),
+                "mode": LogDestination.FILE.name,
+                "logLevel": LogLevel.WARNING.name,
             },
         },
         "formatters": {
@@ -115,17 +123,31 @@ def get_default_config() -> Dict:
         },
         "handlers": {
             "console": {
-                "()": get_fullname(logging.StreamHandler),
+                "()": get_fullname(ConsoleLoggingHandler),
                 "formatter": "colored_console",
                 "filters": ["dest_console_filter"],
+                "useTqdm": True,
             },
             "file": {
-                "()": get_fullname(logging.handlers.RotatingFileHandler),
+                "()": get_fullname(logging.handlers.TimedRotatingFileHandler),
                 "formatter": "detail",
                 "filters": ["dest_file_filter"],
                 "filename": os.path.join(SETTINGS["dir"], "output.log"),
-                "maxBytes": 20 * 1024 * 1024,  # 20MB
-                "backupCount": 10,
+                # "maxBytes": 20 * 1024 * 1024,  # 20MB
+                "when": "H",
+                "interval": 6,
+                "backupCount": 20,
+                "encoding": "utf-8",
+            },
+            "warn_file": {
+                "()": get_fullname(logging.handlers.TimedRotatingFileHandler),
+                "formatter": "detail",
+                "filters": ["warn_dest_file_filter"],
+                "filename": os.path.join(SETTINGS["dir"], "error.log"),
+                # "maxBytes": 20 * 1024 * 1024,  # 20MB
+                "when": "H",
+                "interval": 6,
+                "backupCount": 30,
                 "encoding": "utf-8",
             },
         },
@@ -141,40 +163,65 @@ def get_default_config() -> Dict:
 def root_logger_setup():
     global SETTINGS
 
-    is_config_load_from_file = False
-    exception = None
-
     if not utils.is_str_empty_or_space(SETTINGS["config_filepath"]):
         try:
             config = utils.load_config(SETTINGS["config_filepath"])
-            is_config_load_from_file = True
+
+            is_enabled = config.get("enabled")
+            if is_enabled == None:
+                is_enabled = True
+            else:
+                del config["enabled"]
+
+            if is_enabled:
+                logging.config.dictConfig(config)
+            else:
+                logging.root.addHandler(logging.NullHandler())
+
+            if is_enabled and not logging.root.hasHandlers():
+                raise Exception("하나 이상의 Log Handler가 필요합니다.")
+
+            logger = get_logger(root_logger_setup)
+
+            logger.debug(f"설정 파일 로드 완료")
         except Exception as ex:
-            exception = ex
+            is_enabled = True
+            config = get_default_config()
+            logging.config.dictConfig(config)
 
-    if not is_config_load_from_file:
-        config = get_default_config()
+            logger = get_logger(root_logger_setup)
 
-    logging.config.dictConfig(config)
-
-    logger = logging.getLogger("log")
-    logger.setLevel(SETTINGS["level"].value)
-
-    if is_config_load_from_file:
-        logger.debug(f"설정 파일 로드 완료")
-    elif exception != None:
-        logger.warning(f"설정 파일 로드 오류, 기본 설정 사용됨 \n{exception}")
-    else:
-        logger.debug(f"기본 설정 로드 완료")
+            logger.warning(f"설정 파일 로드 오류, 기본 설정이 사용됩니다.\n{pformat(ex)}")
 
     if not utils.is_str_empty_or_space(SETTINGS["config_filepath"]):
+        config["enabled"] = is_enabled
         utils.save_config(config, SETTINGS["config_filepath"])
         logger.debug(f"설정 파일 저장 완료")
+
+
+# 출처: https://stackoverflow.com/a/38739634/12745351
+# 수정해서 사용함
+class ConsoleLoggingHandler(logging.StreamHandler):
+    def __init__(self, useTqdm: bool = True):
+        super().__init__()
+        self._use_tqdm = useTqdm
+
+    def emit(self, record):
+        if self._use_tqdm:
+            try:
+                msg = self.format(record)
+                tqdm.tqdm.write(msg)
+                self.flush()
+            except Exception:
+                self.handleError(record)
+        else:
+            super().emit(record)
 
 
 class HandlerDestFilter(logging.Filter):
     LINE_FORMATTER_REGEX = re.compile(r"\n(?!\t-> )")
 
-    def __init__(self, name: str = "", mode: Union[int, str, LogDestination] = LogDestination.ALL) -> None:
+    def __init__(self, name: str = "", mode: Union[int, str, LogDestination] = LogDestination.ALL, logLevel: Union[int, str, LogLevel] = LogLevel.DEFAULT) -> None:
         super().__init__(name)
 
         if isinstance(mode, int):
@@ -187,7 +234,20 @@ class HandlerDestFilter(logging.Filter):
             assert mode in LogDestination, f"지원하지 않는 mode 입니다."
             self.mode = mode
 
+        if isinstance(logLevel, int):
+            assert LogLevel.has_value(logLevel), f"지원하지 않는 LogLevel 입니다."
+            self.log_level = LogLevel(logLevel)
+        elif isinstance(logLevel, str):
+            assert LogLevel.has_name(logLevel), f"지원하지 않는 LogLevel 입니다."
+            self.log_level = LogLevel[logLevel]
+        else:
+            assert logLevel in LogLevel, f"지원하지 않는 LogLevel 입니다."
+            self.log_level = logLevel
+
     def filter(self, record: logging.LogRecord):
+        if record.levelno < self.log_level:
+            return False
+
         self._format_line(record=record)
         if len(record.args) > 0 and isinstance(dest := record.args.get("dest"), LogDestination):
             del record.args["dest"]

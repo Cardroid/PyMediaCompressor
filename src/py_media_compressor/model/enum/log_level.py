@@ -57,11 +57,3 @@ class LogLevel(Enum):
             return self.value >= other
         else:
             return super().__ge__(other)
-
-
-# object.__lt__(self, other)
-# object.__le__(self, other)¶
-# object.__eq__(self, other)
-# object.__ne__(self, other)
-# object.__gt__(self, other)
-# object.__ge__(self, other)
