@@ -2,7 +2,7 @@ from pprint import PrettyPrinter
 from typing import Union
 
 
-def pformat(object, indent=1, width=160, depth: Union[int, None] = None, compact=False, sort_dicts=True):  # 기본 인자값 재정의
+def pformat(object, indent=1, width=160, depth: Union[int, None] = None, compact=False, sort_dicts=True):  # 기본값 재정의
 
     if isinstance(object, list):
         object = _pformat_list_helper(object=object, depth=depth)

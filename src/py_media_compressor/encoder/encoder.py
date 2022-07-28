@@ -1,7 +1,8 @@
 import os
 import queue
 from threading import Thread
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
+
 import bitmath
 import ffmpeg
 from tqdm import tqdm
@@ -19,7 +20,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     """미디어를 압축합니다.
 
     Args:
-        ffmpegArgs (FFmpegArgs): 인코더, 파일 소스를 포함한 인자
+        ffmpegArgs (FFmpegArgs): 인코더, 파일 소스를 포함한 인수
 
     Returns:
         FileInfo: 파일 정보
@@ -29,7 +30,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     if ffmpegArgs.file_info.status == FileTaskStatus.INIT:
         add_auto_args(ffmpegArgs=ffmpegArgs)
-        logger.debug("ffmpeg 인자 자동 생성 완료")
+        logger.debug("ffmpeg 인수 자동 생성 완료")
 
     if logger.isEnabledFor(LogLevel.INFO):
         logger.info(f"현재 작업 파일 정보: \n{pformat(ffmpegArgs.get_all_in_one_dict())}")
@@ -40,7 +41,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     if ffmpegArgs.file_info.status != FileTaskStatus.WAITING:
         logger.error(f"해당 작업의 상태가 올비르지 않습니다. Skipped.")
         return ffmpegArgs.file_info
-    
+
     ffmpegArgs.file_info.status = FileTaskStatus.PROCESSING
 
     ffmpeg_args_dict = ffmpegArgs.as_dict()
@@ -178,12 +179,12 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
             return error_output_check(ffmpegArgs)
 
 
-def get_source_file(inputPaths: List[str], mediaExtFilter: List[str] = None, useProgressbar=False, leave=True) -> Tuple[List, int, int]:
+def get_source_file(inputPaths: List[str], mediaExtFilter: Union[List[str], None] = None, useProgressbar=False, leave=True) -> Tuple[List, int, int]:
     """입력 경로에서 소스파일을 검색합니다.
 
     Args:
         inputPaths (List[str]): 입력 경로
-        mediaExtFilter (List[str], optional): 미디어 확장자 필터. Defaults to None.
+        mediaExtFilter (Union[List[str], None], optional): 미디어 확장자 필터. Defaults to None.
         useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
         leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
 

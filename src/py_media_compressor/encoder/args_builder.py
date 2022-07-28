@@ -25,7 +25,7 @@ def _status_changer(func):
 
 @_status_changer
 def add_auto_args(ffmpegArgs: FFmpegArgs):
-    """FFmpeg 인자 자동 추가"""
+    """FFmpeg 인수 자동 추가"""
 
     add_format_args(ffmpegArgs=ffmpegArgs)
     add_video_args(ffmpegArgs=ffmpegArgs)
@@ -35,7 +35,7 @@ def add_auto_args(ffmpegArgs: FFmpegArgs):
 
 @_status_changer
 def add_stream_copy_args(ffmpegArgs: FFmpegArgs):
-    """FFmpeg 스트림 복사 인자 추가"""
+    """FFmpeg 스트림 복사 인수 추가"""
 
     ffmpegArgs["c:v"] = "copy"
     ffmpegArgs["c:a"] = "copy"
@@ -43,7 +43,7 @@ def add_stream_copy_args(ffmpegArgs: FFmpegArgs):
 
 @_status_changer
 def add_format_args(ffmpegArgs: FFmpegArgs):
-    """포멧 인자 추가"""
+    """포멧 인수 추가"""
 
     logger = log.get_logger(add_format_args)
 
@@ -58,12 +58,12 @@ def add_format_args(ffmpegArgs: FFmpegArgs):
     ffmpegArgs["format"] = format
 
     if logger.isEnabledFor(LogLevel.DEBUG):
-        logger.debug(f"포멧 인자 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
+        logger.debug(f"포멧 인수 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
 
 
 @_status_changer
 def add_video_args(ffmpegArgs: FFmpegArgs):
-    """비디오 인자 추가"""
+    """비디오 인수 추가"""
 
     logger = log.get_logger(add_video_args)
 
@@ -91,12 +91,12 @@ def add_video_args(ffmpegArgs: FFmpegArgs):
             ffmpegArgs["vf"] = f"scale={width}:{height}"
 
     if logger.isEnabledFor(LogLevel.DEBUG):
-        logger.debug(f"비디오 인자 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
+        logger.debug(f"비디오 인수 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
 
 
 @_status_changer
 def add_audio_args(ffmpegArgs: FFmpegArgs):
-    """오디오 인자 추가"""
+    """오디오 인수 추가"""
 
     logger = log.get_logger(add_audio_args)
 
@@ -116,12 +116,12 @@ def add_audio_args(ffmpegArgs: FFmpegArgs):
             ffmpegArgs[f"b:a:{idx}"] = 320_000 if (bit_rate := audio_stream_info.get("bit_rate")) == None or int(bit_rate) > 320_000 else int(bit_rate)
 
     if logger.isEnabledFor(LogLevel.DEBUG):
-        logger.debug(f"오디오 인자 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
+        logger.debug(f"오디오 인수 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
 
 
 @_status_changer
 def add_metadata_args(ffmpegArgs: FFmpegArgs):
-    """메타데이터 인자 추가"""
+    """메타데이터 인수 추가"""
 
     logger = log.get_logger(add_metadata_args)
 
@@ -196,4 +196,4 @@ def add_metadata_args(ffmpegArgs: FFmpegArgs):
             ffmpegArgs.file_info.status = FileTaskStatus.SKIPPED
 
     if logger.isEnabledFor(LogLevel.DEBUG):
-        logger.debug(f"메타데이터 인자 추가\nArgs: {ffmpegArgs}\nMetadatas: {utils.pformat(metadatas)}")
+        logger.debug(f"메타데이터 인수 추가\nArgs: {ffmpegArgs}\nMetadatas: {utils.pformat(metadatas)}")

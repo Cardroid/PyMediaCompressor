@@ -1,6 +1,7 @@
 import os
 import shutil
 import warnings
+
 from tqdm import TqdmWarning, tqdm
 
 from py_media_compressor import log, encoder, model, utils
@@ -18,19 +19,19 @@ def main():
 
     parser = argparse.ArgumentParser(description="미디어를 압축 인코딩합니다.")
 
-    parser.add_argument("--log-level", choices=[ll.name.lower() for ll in LogLevel if ll.name != "DEFAULT"], dest="log_level", default="info", help="로그 레벨 설정")
-    parser.add_argument("--log-mode", choices=["c", "f", "cf", "console", "file", "consolefile"], dest="log_mode", default="consolefile", help="로그 출력 모드 설정")
-    parser.add_argument("--log-path", dest="log_path", default=log.SETTINGS["dir"], help="로그 출력 모드 설정")
     parser.add_argument("-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 및 디렉토리 경로")
     parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
-    parser.add_argument("-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐경우, 출력파일이 삭제됩니다.")
-    parser.add_argument("-e", "--already_exists_mode", choices=["overwrite", "skip", "numbering"], dest="already_exists_mode", default="numbering", help="출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.")
+    parser.add_argument("-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐 경우, 출력파일이 삭제됩니다.")
+    parser.add_argument("-e", "--already_exists_mode", dest="already_exists_mode", choices=["overwrite", "skip", "numbering"], default="numbering", help="출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.")
     parser.add_argument("-s", "--save_error_output", dest="save_error_output", action="store_true", help="오류가 발생한 출력물을 제거하지 않습니다.")
-    parser.add_argument("-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 스킵하지 않고, 재압축합니다.")
-    parser.add_argument("-c", choices=["h.264", "h.265"], dest="compression_mode", default="h.264", help="압축 모드")
-    parser.add_argument("--crf", dest="crf", default=23, help="압축 crf 값")
+    parser.add_argument("-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 강제로, 재압축합니다.")
+    parser.add_argument("-c", "--compression_mode", dest="compression_mode", choices=["h.264", "h.265"], default="h.264", help="인코더에 전달되는 비디오 코덱 옵션")
+    parser.add_argument("--crf", dest="crf", default=23, help="인코더에 전달되는 crf 값")
     parser.add_argument("--scan", dest="scan", action="store_true", help="해당 옵션을 사용하면, 입력 파일을 탐색하고, 실제 압축은 하지 않습니다.")
-    parser.add_argument("--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다.")
+    parser.add_argument("--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다. (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)")
+    parser.add_argument("--log-level", dest="log_level", choices=[ll.name.lower() for ll in LogLevel if ll.name != "DEFAULT"], default="info", help="로그 레벨 설정")
+    parser.add_argument("--log-mode", dest="log_mode", choices=["c", "f", "cf", "console", "file", "consolefile"], default="consolefile", help="로그 출력 모드")
+    parser.add_argument("--log-path", dest="log_path", default=log.SETTINGS["dir"], help="로그 출력 경로")
 
     args = vars(parser.parse_args())
 
