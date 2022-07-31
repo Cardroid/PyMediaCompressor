@@ -114,15 +114,15 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
             and os.path.isfile(ffmpegArgs.file_info.output_filepath)
         ):
             os.remove(ffmpegArgs.file_info.output_filepath)
-            logger.info(f"오류가 발생한 출력파일을 제거했습니다. Path: {ffmpegArgs.file_info.output_filepath}")
+            logger.info(f"완전하지 않은 출력파일을 제거했습니다. Path: {ffmpegArgs.file_info.output_filepath}")
         return ffmpegArgs.file_info
 
     logger.info(f"ffmpeg Arguments: \n[ffmpeg {' '.join(ffmpeg.get_args(stream))}]")
 
-    if ffmpegArgs.encode_option.use_progressbar:
-        msg_queue = queue.Queue()
-        temp_msg_storage = []
-        try:
+    try:
+        if ffmpegArgs.encode_option.use_progressbar:
+            msg_queue = queue.Queue()
+            temp_msg_storage = []
             process = progress.run_ffmpeg_process_with_msg_queue(stream, msg_queue)
             utils.set_low_process_priority(process.pid)
 
@@ -133,24 +133,11 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
             if code != 0:
                 if result == "suspend":
                     ffmpegArgs.file_info.status = FileTaskStatus.SUSPEND
-                    raise Exception("사용자 입력에 의해 취소되었습니다.")
+                    raise RuntimeWarning("사용자 입력에 의해 취소되었습니다.")
                 else:
                     raise Exception("프로세스가 올바르게 종료되지 않았습니다.")
 
-            utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
-            ffmpegArgs.file_info.status = FileTaskStatus.SUCCESS
-            return ffmpegArgs.file_info
-
-        except Exception as err:
-            if ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND:
-                logger.warning(pformat(err))
-            else:
-                ffmpegArgs.file_info.status = FileTaskStatus.ERROR
-                logger.error(f"미디어 처리 중 예외 발생: \n{pformat(temp_msg_storage)}\n{err}")
-            utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
-            return error_output_check(ffmpegArgs)
-    else:
-        try:
+        else:
             process = ffmpeg.run_async(stream_spec=stream, pipe_stdout=True, pipe_stderr=True)
             _, stderr = process.communicate()
             utils.set_low_process_priority(process.pid)
@@ -160,23 +147,23 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
             if code != 0:
                 if result == "suspend":
                     ffmpegArgs.file_info.status = FileTaskStatus.SUSPEND
-                    raise Exception("사용자 입력에 의해 취소되었습니다.")
+                    raise RuntimeWarning("사용자 입력에 의해 취소되었습니다.")
                 else:
                     raise Exception(f"프로세스가 올바르게 종료되지 않았습니다.\nstderr: {utils.string_decode(stderr)}")
 
             logger.info(utils.string_decode(stderr), {"dest": LogDestination.CONSOLE})
-            utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
-            ffmpegArgs.file_info.status = FileTaskStatus.SUCCESS
-            return ffmpegArgs.file_info
 
-        except Exception as err:
-            if ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND:
-                logger.warning(pformat(err))
-            else:
-                ffmpegArgs.file_info.status = FileTaskStatus.ERROR
-                logger.error(f"미디어 처리 중 예외 발생: \n{pformat(err)}")
-            utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
-            return error_output_check(ffmpegArgs)
+    except Exception as err:
+        if ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND:
+            logger.warning(pformat(err))
+        else:
+            ffmpegArgs.file_info.status = FileTaskStatus.ERROR
+            logger.error(f"미디어 처리 중 예외 발생: \n{pformat(err)}")
+    else:
+        ffmpegArgs.file_info.status = FileTaskStatus.SUCCESS
+    finally:
+        utils.set_file_permission(ffmpegArgs.file_info.output_filepath)
+        return error_output_check(ffmpegArgs)
 
 
 def get_source_file(inputPaths: List[str], mediaExtFilter: Union[List[str], None] = None, useProgressbar=False, leave=True) -> Tuple[List, int, int]:
