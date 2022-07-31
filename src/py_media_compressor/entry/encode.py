@@ -26,7 +26,7 @@ def main():
     parser.add_argument("-s", "--save_error_output", dest="save_error_output", action="store_true", help="오류가 발생한 출력물을 제거하지 않습니다.")
     parser.add_argument("-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 강제로, 재압축합니다.")
     parser.add_argument("-c", "--codec", dest="codec", choices=["h.264", "h.265"], default="h.264", help="인코더에 전달되는 비디오 코덱 옵션")
-    parser.add_argument("--crf", dest="crf", default=23, help="인코더에 전달되는 crf 값")
+    parser.add_argument("--crf", dest="crf", choices=range(-1, 52), default=-1, metavar="{-1~51}", help="인코더에 전달되는 crf 값 (-1을 입력하면 코덱에 따라 기본값이 자동으로 계산됩니다.) [h.264 = 23, h.265 = 28]")
     parser.add_argument("--scan", dest="scan", action="store_true", help="해당 옵션을 사용하면, 입력 파일을 탐색하고, 실제 압축은 하지 않습니다.")
     parser.add_argument("--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다. (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)")
     parser.add_argument("--log-level", dest="log_level", choices=[ll.name.lower() for ll in LogLevel if ll.name != "DEFAULT"], default="info", help="로그 레벨 설정")

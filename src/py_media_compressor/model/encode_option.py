@@ -7,7 +7,7 @@ class EncodeOption(DictDataBase):
         maxHeight: int = 1440,
         isForce: bool = False,
         codec: str = "h.264",
-        crf: int = 23,
+        crf: int = -1,
         removeErrorOutput: bool = True,
         useProgressbar: bool = False,
         leave: bool = True,
@@ -18,7 +18,7 @@ class EncodeOption(DictDataBase):
             maxHeight (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
             isForce (bool, optional): 이미 처리된 미디어 파일을 강제적으로 재처리합니다. Defaults to False.
             codec (str, optional): 압축 모드. Defaults to "h.264".
-            crf (int, optional): 압축 crf 값. Defaults to 23.
+            crf (int, optional): 압축 crf 값. Defaults to -1.
             removeErrorOutput (bool, optional): 정상적으로 압축하지 못했을 경우 출력 파일을 삭제합니다. Defaults to True.
             useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
             leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
@@ -31,6 +31,12 @@ class EncodeOption(DictDataBase):
         assert isinstance(removeErrorOutput, bool)
         assert isinstance(useProgressbar, bool)
         assert isinstance(leave, bool)
+
+        if crf < 0:
+            if codec == "h.264":
+                crf = 23
+            elif codec == "h.265":
+                crf = 28
 
         super().__init__(
             data={
