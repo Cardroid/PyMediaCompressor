@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import warnings
 
@@ -12,6 +13,17 @@ from py_media_compressor.model.enum import LogLevel, FileTaskStatus
 
 # 경고 문구 무시
 warnings.filterwarnings(action="ignore", category=TqdmWarning)
+
+
+def unhandled_exception_hook(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    log.get_logger(unhandled_exception_hook).critical("처리되지 않은 예외가 발생했습니다.", exc_info=(exc_type, exc_value, exc_traceback))
+
+
+sys.excepthook = unhandled_exception_hook
 
 
 def main():
