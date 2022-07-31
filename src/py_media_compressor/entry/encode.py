@@ -25,7 +25,7 @@ def main():
     parser.add_argument("-e", "--already_exists_mode", dest="already_exists_mode", choices=["overwrite", "skip", "numbering"], default="numbering", help="출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.")
     parser.add_argument("-s", "--save_error_output", dest="save_error_output", action="store_true", help="오류가 발생한 출력물을 제거하지 않습니다.")
     parser.add_argument("-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 강제로, 재압축합니다.")
-    parser.add_argument("-c", "--compression_mode", dest="compression_mode", choices=["h.264", "h.265"], default="h.264", help="인코더에 전달되는 비디오 코덱 옵션")
+    parser.add_argument("-c", "--codec", dest="codec", choices=["h.264", "h.265"], default="h.264", help="인코더에 전달되는 비디오 코덱 옵션")
     parser.add_argument("--crf", dest="crf", default=23, help="인코더에 전달되는 crf 값")
     parser.add_argument("--scan", dest="scan", action="store_true", help="해당 옵션을 사용하면, 입력 파일을 탐색하고, 실제 압축은 하지 않습니다.")
     parser.add_argument("--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다. (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)")
@@ -112,7 +112,7 @@ def main():
     encode_option = model.EncodeOption(
         maxHeight=max_height,
         isForce=is_force,
-        compressionMode=args["compression_mode"],
+        codec=args["codec"],
         crf=args["crf"],
         removeErrorOutput=not is_save_error_output,
         useProgressbar=True,
@@ -124,7 +124,7 @@ def main():
         file_info_tqdm.set_description(f"Processing... {os.path.basename(file_info.input_filepath)}")
 
         try:
-            ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option)
+            ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option.clone())
         except Exception as ex:
             logger.error(f"파일 정보를 불러오는 도중 오류가 발생했습니다. Skipped.\nException: {pformat(ex)}\nFileInfo: {pformat(ffmpeg_args)}")
             continue
@@ -179,7 +179,7 @@ def main():
 
                             logger.info(f"스트림 복사 및 메타데이터를 삽입합니다.")
                             file_info.status = FileTaskStatus.INIT
-                            ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option)
+                            ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option.clone())
                             args_builder.add_stream_copy_args(ffmpegArgs=ffmpeg_args)
                             args_builder.add_metadata_args(ffmpegArgs=ffmpeg_args)
                             file_info = encoder.media_compress_encode(ffmpegArgs=ffmpeg_args)
