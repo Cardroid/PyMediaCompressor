@@ -125,14 +125,14 @@ def main():
 
         try:
             ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option.clone())
-        except Exception as ex:
-            logger.error(f"파일 정보를 불러오는 도중 오류가 발생했습니다. Skipped.\nException: {pformat(ex)}\nFileInfo: {pformat(ffmpeg_args)}")
+        except Exception:
+            logger.error(f"파일 정보를 불러오는 도중 오류가 발생했습니다. Skipped.\nFileInfo: {pformat(ffmpeg_args)}", exc_info=True)
             continue
 
         try:
             ext = ffmpeg_args.expected_ext
-        except Exception as ex:
-            logger.error(f"출력 파일 확장자를 추정할 수 없습니다. Skipped.\nException: {pformat(ex)}\nFFmpegArgs: {pformat(ffmpeg_args)}")
+        except Exception:
+            logger.error(f"출력 파일 확장자를 추정할 수 없습니다. Skipped.\nFFmpegArgs: {pformat(ffmpeg_args)}", exc_info=True)
             continue
 
         ffmpeg_args.file_info.output_filepath = os.path.join(output_dirpath, f"{os.path.splitext(os.path.basename(ffmpeg_args.file_info.input_filepath))[0]}{ext}")
@@ -185,8 +185,8 @@ def main():
                             file_info = encoder.media_compress_encode(ffmpegArgs=ffmpeg_args)
                             replace_input_output(fileInfo=file_info)
                             file_info.output_filepath = file_info.input_filepath
-                    except Exception as ex:
-                        logger.error(f"Replace 작업 실패\nException: {pformat(ex)}")
+                    except Exception:
+                        logger.error(f"Replace 작업 실패", exc_info=True)
         elif file_info.status == FileTaskStatus.SUSPEND:
             logger.warning(f"사용자에 의해 모든 작업이 중단됨.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}")
             break

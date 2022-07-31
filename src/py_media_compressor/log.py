@@ -184,14 +184,14 @@ def root_logger_setup():
             logger = get_logger(root_logger_setup)
 
             logger.debug(f"설정 파일 로드 완료")
-        except Exception as ex:
+        except Exception:
             is_enabled = True
             config = get_default_config()
             logging.config.dictConfig(config)
 
             logger = get_logger(root_logger_setup)
 
-            logger.warning(f"설정 파일 로드 오류, 기본 설정이 사용됩니다.\n{pformat(ex)}")
+            logger.warning(f"설정 파일 로드 오류, 기본 설정이 사용됩니다.", exc_info=True)
 
     if not utils.is_str_empty_or_space(SETTINGS["config_filepath"]):
         config["enabled"] = is_enabled

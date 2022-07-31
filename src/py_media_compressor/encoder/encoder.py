@@ -153,12 +153,12 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
             logger.info(utils.string_decode(stderr), {"dest": LogDestination.CONSOLE})
 
-    except Exception as err:
+    except Exception:
         if ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND:
-            logger.warning(pformat(err))
+            logger.warning("작업이 중단되었습니다.", exc_info=True)
         else:
             ffmpegArgs.file_info.status = FileTaskStatus.ERROR
-            logger.error(f"미디어 처리 중 예외 발생: \n{pformat(err)}")
+            logger.error(f"미디어 처리 중 예외가 발생했습니다.", exc_info=True)
     else:
         ffmpegArgs.file_info.status = FileTaskStatus.SUCCESS
     finally:
