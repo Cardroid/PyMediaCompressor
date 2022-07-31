@@ -75,11 +75,13 @@ def add_video_args(ffmpegArgs: FFmpegArgs):
             ffmpegArgs["c:v"] = "libx265"
         ffmpegArgs["crf"] = ffmpegArgs.encode_option.crf
         ffmpegArgs["preset"] = "veryslow"
-        height = int(ffmpegArgs.video_stream["height"])
 
         # 세로 또는 가로 픽셀 수가 짝수가 아닐 경우 발생하는 오류 처리 포함
-        width = ffmpegArgs.video_stream["width"]
-        height = ffmpegArgs.video_stream["height"]
+        if (width := ffmpegArgs.video_stream.get("width")) == None:
+            width = ffmpegArgs.video_stream.get("coded_width")
+        if (height := ffmpegArgs.video_stream.get("height")) == None:
+            height = ffmpegArgs.video_stream.get("coded_height")
+
         if height > (max_height := ffmpegArgs.encode_option.max_height):
             is_even = round(int(width) * max_height / height) % 2 == 0
             ffmpegArgs["vf"] = f"scale={'-1' if is_even else '-2'}:{max_height}"
