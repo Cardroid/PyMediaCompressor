@@ -1,6 +1,8 @@
 from pprint import PrettyPrinter
 from typing import Union
 
+from py_media_compressor import log
+
 
 def pformat(object, indent=1, width=160, depth: Union[int, None] = None, compact=False, sort_dicts=True):  # 기본값 재정의
 
@@ -50,7 +52,11 @@ def is_str_empty_or_space(string: str) -> bool:
 
 def string_decode(byteString: bytes, encoding="utf-8"):
     if isinstance(byteString, bytes):
-        string = byteString.decode(encoding=encoding)
+        try:
+            string = byteString.decode(encoding=encoding)
+        except Exception:
+            log.get_logger(string_decode).error(f"디코드 오류, 바이트를 디코드 할 수 없었습니다.\nEncoding: {encoding}\nByteString: {byteString}", exc_info=True)
+            return ""
     else:
         string = byteString
 
