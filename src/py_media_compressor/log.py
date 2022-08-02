@@ -1,4 +1,5 @@
 import os
+import sys
 import re
 import inspect
 import logging
@@ -11,9 +12,18 @@ import tqdm
 
 from py_media_compressor import utils
 from py_media_compressor.model.enum import LogDestination, LogLevel
-from py_media_compressor.utils import pformat
 from py_media_compressor.version import package_name
 
+
+def unhandled_exception_hook(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    get_logger(unhandled_exception_hook).critical("처리되지 않은 예외가 발생했습니다.", exc_info=(exc_type, exc_value, exc_traceback))
+
+
+sys.excepthook = unhandled_exception_hook
 
 # 전역 설정
 # config_filepath (str, optional): 로그 설정 파일 저장 경로. Defaults to "config/log.yaml".
