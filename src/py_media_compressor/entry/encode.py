@@ -119,6 +119,8 @@ def main():
         leave=False,
     )
 
+    file_infos.sort(key=lambda fi: fi.input_filesize)
+
     ffmpeg_args: model.FFmpegArgs
     for file_info in (file_info_tqdm := tqdm(file_infos, leave=False, dynamic_ncols=True)):
         file_info_tqdm.set_description(f"Processing... {os.path.basename(file_info.input_filepath)}")
