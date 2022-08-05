@@ -15,6 +15,7 @@ preset을 veryslow로 설정하여 CPU 사용량이 매우 높지만, 높은 압
 1. 퀄리티 값 (crf) (값의 범위 0 ~ 51, 0 = 무손실, 51 = 최악의 품질) (기본값 = [h.264 = 23, h.265 = 28])
 2. 코덱 (h.264, h.265)
 3. 세로 픽셀 수 (가로는 비율에 맞게 자동 조절) (기본값 = 1440)
+4. 하드웨어 가속 디코딩 (cuda만 지원)
 
 #### 주의 사항
 
@@ -53,6 +54,7 @@ usage: encode [-h]
               [--crf {-1~51}]
               [--scan]
               [--height HEIGHT]
+              [--cuda]
               [--log-level {debug,info,warning,error,critical}]
               [--log-mode {c,f,cf,console,file,consolefile}]
               [--log-path LOG_PATH]
@@ -78,6 +80,7 @@ optional arguments:
   --scan                해당 옵션을 사용하면, 입력 파일을 탐색하고, 실제 압축은 하지 않습니다.
   --height HEIGHT       출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다.
                         (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)
+  --cuda                CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다.
   --log-level {debug,info,warning,error,critical}
                         로그 레벨 설정
   --log-mode {c,f,cf,console,file,consolefile}
