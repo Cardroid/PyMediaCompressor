@@ -135,7 +135,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                     ffmpegArgs.file_info.status = FileTaskStatus.SUSPEND
                     raise RuntimeWarning("사용자 입력에 의해 취소되었습니다.")
                 else:
-                    raise Exception("프로세스가 올바르게 종료되지 않았습니다.")
+                    raise Exception("프로세스가 올바르게 종료되지 않았습니다.\nstderr: " + "".join(temp_msg_storage))
 
         else:
             process = ffmpeg.run_async(stream_spec=stream, pipe_stdout=True, pipe_stderr=True)
