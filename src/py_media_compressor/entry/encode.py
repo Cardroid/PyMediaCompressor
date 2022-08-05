@@ -29,6 +29,7 @@ def main():
     parser.add_argument("--crf", dest="crf", choices=range(-1, 52), default=-1, metavar="{-1~51}", help="인코더에 전달되는 crf 값 (-1을 입력하면 코덱에 따라 기본값이 자동으로 계산됩니다.) [h.264 = 23, h.265 = 28]")
     parser.add_argument("--scan", dest="scan", action="store_true", help="해당 옵션을 사용하면, 입력 파일을 탐색하고, 실제 압축은 하지 않습니다.")
     parser.add_argument("--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다. (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)")
+    parser.add_argument("--cuda", dest="cuda", action="store_true", help="CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다.")
     parser.add_argument("--log-level", dest="log_level", choices=[ll.name.lower() for ll in LogLevel if ll.name != "DEFAULT"], default="info", help="로그 레벨 설정")
     parser.add_argument("--log-mode", dest="log_mode", choices=["c", "f", "cf", "console", "file", "consolefile"], default="consolefile", help="로그 출력 모드")
     parser.add_argument("--log-path", dest="log_path", default=log.SETTINGS["dir"], help="로그 출력 경로")
@@ -117,6 +118,7 @@ def main():
         removeErrorOutput=not is_save_error_output,
         useProgressbar=True,
         leave=False,
+        isCuda=args["cuda"],
     )
 
     file_infos.sort(key=lambda fi: fi.input_filesize)

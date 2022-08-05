@@ -46,7 +46,10 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     ffmpeg_args_dict = ffmpegArgs.as_dict()
 
-    stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath)
+    if ffmpegArgs.encode_option.is_cuda:
+        stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath, hwaccel="cuda")
+    else:
+        stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath)
 
     ignored_streams = []
     streams = []

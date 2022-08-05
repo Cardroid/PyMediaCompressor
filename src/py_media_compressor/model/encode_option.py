@@ -11,6 +11,7 @@ class EncodeOption(DictDataBase):
         removeErrorOutput: bool = True,
         useProgressbar: bool = False,
         leave: bool = True,
+        isCuda: bool = False,
     ) -> None:
         """인코드 옵션
 
@@ -22,6 +23,7 @@ class EncodeOption(DictDataBase):
             removeErrorOutput (bool, optional): 정상적으로 압축하지 못했을 경우 출력 파일을 삭제합니다. Defaults to True.
             useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
             leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
+            isCuda (bool, optional): CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다. Defaults to False.
         """
 
         assert isinstance(maxHeight, int)
@@ -31,6 +33,7 @@ class EncodeOption(DictDataBase):
         assert isinstance(removeErrorOutput, bool)
         assert isinstance(useProgressbar, bool)
         assert isinstance(leave, bool)
+        assert isinstance(isCuda, bool)
 
         if crf < 0:
             if codec == "h.264":
@@ -47,6 +50,7 @@ class EncodeOption(DictDataBase):
                 "remove_error_output": removeErrorOutput,
                 "use_progressbar": useProgressbar,
                 "leave": leave,
+                "is_cuda": isCuda,
             }
         )
 
@@ -81,4 +85,8 @@ class EncodeOption(DictDataBase):
 
     @property
     def leave(self) -> bool:
+        return self._get_value()
+
+    @property
+    def is_cuda(self) -> bool:
         return self._get_value()
