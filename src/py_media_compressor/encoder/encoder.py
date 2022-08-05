@@ -46,7 +46,10 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     ffmpeg_args_dict = ffmpegArgs.as_dict()
 
-    stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath)
+    if ffmpegArgs.encode_option.is_cuda:
+        stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath, hwaccel="cuda")
+    else:
+        stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath)
 
     ignored_streams = []
     streams = []
@@ -135,7 +138,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                     ffmpegArgs.file_info.status = FileTaskStatus.SUSPEND
                     raise RuntimeWarning("사용자 입력에 의해 취소되었습니다.")
                 else:
-                    raise Exception("프로세스가 올바르게 종료되지 않았습니다.")
+                    raise Exception("프로세스가 올바르게 종료되지 않았습니다.\nstderr: " + "".join(temp_msg_storage))
 
         else:
             process = ffmpeg.run_async(stream_spec=stream, pipe_stdout=True, pipe_stderr=True)
@@ -153,12 +156,12 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
             logger.info(utils.string_decode(stderr), {"dest": LogDestination.CONSOLE})
 
-    except Exception as err:
+    except Exception:
         if ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND:
-            logger.warning(pformat(err))
+            logger.warning("작업이 중단되었습니다.", exc_info=True)
         else:
             ffmpegArgs.file_info.status = FileTaskStatus.ERROR
-            logger.error(f"미디어 처리 중 예외 발생: \n{pformat(err)}")
+            logger.error(f"미디어 처리 중 예외가 발생했습니다.", exc_info=True)
     else:
         ffmpegArgs.file_info.status = FileTaskStatus.SUCCESS
     finally:
