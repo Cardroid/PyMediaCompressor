@@ -171,7 +171,7 @@ def main():
                         utils.set_file_permission(fileInfo.output_filepath)
 
                         if os.path.basename(fileInfo.input_filepath) != os.path.basename(fileInfo.output_filepath):
-                            os.remove(fileInfo.input_filepath)
+                            shutil.rmtree(fileInfo.input_filepath)
 
                         logger.info(f"덮어쓰기 성공")
 
@@ -180,7 +180,7 @@ def main():
                             replace_input_output(fileInfo=file_info)
                         else:
                             logger.info(f"원본 크기가 더 큽니다. 출력파일을 삭제합니다.")
-                            os.remove(file_info.output_filepath)
+                            shutil.rmtree(file_info.output_filepath)
 
                             logger.info(f"스트림 복사 및 메타데이터를 삽입합니다.")
                             file_info.status = FileTaskStatus.INIT

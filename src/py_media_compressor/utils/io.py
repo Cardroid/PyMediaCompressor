@@ -2,6 +2,7 @@ import os
 import hashlib
 from glob import escape, glob
 import platform
+import shutil
 from typing import Dict, List
 
 import yaml
@@ -80,13 +81,13 @@ def overwrite_small_file(originFilepath: str, destinationFilepath: str, orginFil
 
     if is_need_remove:
         try:
-            os.replace(originFilepath, destinationFilepath)
+            shutil.move(originFilepath, destinationFilepath)
             is_remove_success = True
         except:
             is_remove_success = False
     elif orginFileRemove:
         try:
-            os.remove(originFilepath)
+            shutil.rmtree(originFilepath)
         except:
             pass
 
