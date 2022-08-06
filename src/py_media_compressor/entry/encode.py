@@ -1,5 +1,4 @@
 import os
-import shutil
 import warnings
 
 from tqdm import TqdmWarning, tqdm
@@ -165,13 +164,13 @@ def main():
                         dest_filepath = os.path.splitext(fileInfo.input_filepath)[0] + os.path.splitext(fileInfo.output_filepath)[1]
                         src_filepath = fileInfo.output_filepath
 
-                        shutil.move(src_filepath, dest_filepath)
+                        utils.move(src_filepath, dest_filepath)
                         fileInfo.output_filepath = dest_filepath
 
                         utils.set_file_permission(fileInfo.output_filepath)
 
                         if os.path.basename(fileInfo.input_filepath) != os.path.basename(fileInfo.output_filepath):
-                            shutil.rmtree(fileInfo.input_filepath)
+                            utils.remove(fileInfo.input_filepath)
 
                         logger.info(f"덮어쓰기 성공")
 
@@ -180,7 +179,7 @@ def main():
                             replace_input_output(fileInfo=file_info)
                         else:
                             logger.info(f"원본 크기가 더 큽니다. 출력파일을 삭제합니다.")
-                            shutil.rmtree(file_info.output_filepath)
+                            utils.remove(file_info.output_filepath)
 
                             logger.info(f"스트림 복사 및 메타데이터를 삽입합니다.")
                             file_info.status = FileTaskStatus.INIT

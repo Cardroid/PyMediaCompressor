@@ -1,6 +1,5 @@
 import os
 import queue
-import shutil
 from threading import Thread
 from typing import Any, Dict, List, Tuple, Union
 
@@ -117,7 +116,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
             and (ffmpegArgs.file_info.status == FileTaskStatus.ERROR or ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND)
             and os.path.isfile(ffmpegArgs.file_info.output_filepath)
         ):
-            shutil.rmtree(ffmpegArgs.file_info.output_filepath)
+            utils.remove(ffmpegArgs.file_info.output_filepath)
             logger.info(f"완전하지 않은 출력파일을 제거했습니다. Path: {ffmpegArgs.file_info.output_filepath}")
         return ffmpegArgs.file_info
 
