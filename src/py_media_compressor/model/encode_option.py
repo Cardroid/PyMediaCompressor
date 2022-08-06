@@ -35,24 +35,24 @@ class EncodeOption(DictDataBase):
         assert isinstance(leave, bool)
         assert isinstance(isCuda, bool)
 
+        super().__init__()
+
         if crf < 0:
             if codec == "h.264":
                 crf = 23
             elif codec == "h.265":
                 crf = 28
 
-        super().__init__(
-            data={
-                "max_height": maxHeight,
-                "is_force": isForce,
-                "codec": codec,
-                "crf": crf,
-                "remove_error_output": removeErrorOutput,
-                "use_progressbar": useProgressbar,
-                "leave": leave,
-                "is_cuda": isCuda,
-            }
-        )
+        self._data = {
+            "max_height": maxHeight,
+            "is_force": isForce,
+            "codec": codec,
+            "crf": crf,
+            "remove_error_output": removeErrorOutput,
+            "use_progressbar": useProgressbar,
+            "leave": leave,
+            "is_cuda": isCuda,
+        }
 
     def clone(self):
         clone_option = EncodeOption()
