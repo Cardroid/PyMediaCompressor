@@ -153,6 +153,7 @@ def main():
             continue
 
         file_info = encoder.media_compress_encode(ffmpeg_args)
+        del ffmpeg_args
 
         if file_info.status == FileTaskStatus.ERROR:
             logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}")
