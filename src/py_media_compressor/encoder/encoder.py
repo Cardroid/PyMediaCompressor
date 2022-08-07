@@ -46,10 +46,12 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     ffmpeg_args_dict = ffmpegArgs.as_dict()
 
-    if not ffmpegArgs.is_only_audio and ffmpegArgs.encode_option.is_cuda and os.path.splitext(ffmpegArgs.file_info.input_filepath)[1] not in [".wmv"]:
-        stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath, hwaccel="cuda")
-    else:
-        stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath)
+    input_Args = {}
+
+    if not ffmpegArgs.is_only_audio and ffmpegArgs.encode_option.is_cuda and os.path.splitext(ffmpegArgs.file_info.input_filepath)[1] not in [".wmv"]:  # wmv 컨테이너 중, 하드웨어 디코드 오류가 발생하는 문제가 있음
+        input_Args["hwaccel"] = "cuda"
+
+    stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath, **input_Args)
 
     ignored_streams = []
     streams = []
