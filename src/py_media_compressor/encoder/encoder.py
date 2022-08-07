@@ -245,7 +245,7 @@ def get_source_file(inputPaths: List[str], mediaExtFilter: Union[List[str], None
                 detected_fileinfos.append(dupl_test_result[1])
                 file_count += 1
             else:
-                logger.info(f"중복 파일이 제외되었습니다.\nOrigin: {pformat(dupl_test_result[1])}\nTest: {pformat(dupl_test_result[2])}", {"dest": log.LogDestination.FILE})
+                logger.warning(f"중복 파일이 제외되었습니다.\nOrigin: {pformat(dupl_test_result[1])}\nTest: {pformat(dupl_test_result[2])}")
                 dupl_file_count += 1
 
         if len(detected_fileinfos) > 0:
