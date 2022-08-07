@@ -71,7 +71,14 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     def msg_reader(queue: queue.Queue, temp_msg_storage: List = None):
         total_duration = float(ffmpegArgs.probe_info["format"]["duration"])
         bar = tqdm(total=round(total_duration, 2), leave=ffmpegArgs.encode_option.leave, dynamic_ncols=True)
-        info = {}
+        info = {
+            "spd": "",
+            "time": "",
+            "size": "",
+            "frame": "",
+            "fps": "",
+            "br": "",
+        }
 
         for msg in iter(queue.get, None):
             if msg["type"] == "stderr":
@@ -91,14 +98,26 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                 for key, value in msg.items():
                     if key in ["frame", "fps", "total_size", "bitrate", "out_time", "speed", "dup_frames", "drop_frames"]:
                         if key == "total_size":
+                            key = "size"
                             p_value = str(bitmath.best_prefix(int(value), system=bitmath.SI)).split(" ")
                             value = f"{round(float(p_value[0]), 1)} {p_value[1]}"
                         elif key == "out_time":
+                            key = "time"
                             value = value.split(".")[0]
-                        elif key == "dup_frames" and value == "0":
-                            continue
-                        elif key == "drop_frames" and value == "0":
-                            continue
+                        elif key == "bitrate":
+                            key = "br"
+                        elif key == "speed":
+                            key = "spd"
+                        elif key == "dup_frames":
+                            if value == "0":
+                                continue
+                            else:
+                                key = "dup_f"
+                        elif key == "drop_frames":
+                            if value == "0":
+                                continue
+                            else:
+                                key = "drop_f"
 
                         info[key] = value
 
