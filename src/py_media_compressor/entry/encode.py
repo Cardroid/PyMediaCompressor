@@ -2,6 +2,7 @@ import os
 import warnings
 
 from tqdm import TqdmWarning, tqdm
+import bitmath
 
 from py_media_compressor import log, encoder, model, utils
 from py_media_compressor.encoder import args_builder
@@ -125,6 +126,11 @@ def main():
     ffmpeg_args: model.FFmpegArgs
     for file_info in (file_info_tqdm := tqdm(file_infos, leave=False, dynamic_ncols=True)):
         file_info_tqdm.set_description(f"Processing... {os.path.basename(file_info.input_filepath)}")
+
+        # tqdm 소스 파일 크기 표시
+        input_file_size_h = str(bitmath.best_prefix(int(file_info.input_filesize), system=bitmath.SI)).split(" ")
+        input_file_size_h = f"{round(float(input_file_size_h[0]), 1)} {input_file_size_h[1]}"
+        file_info_tqdm.set_postfix(size=input_file_size_h)
 
         try:
             ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option.clone())
