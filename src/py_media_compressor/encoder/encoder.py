@@ -46,7 +46,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     ffmpeg_args_dict = ffmpegArgs.as_dict()
 
-    if ffmpegArgs.encode_option.is_cuda:
+    if not ffmpegArgs.is_only_audio and ffmpegArgs.encode_option.is_cuda and os.path.splitext(ffmpegArgs.file_info.input_filepath)[1] not in [".wmv"]:
         stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath, hwaccel="cuda")
     else:
         stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath)
@@ -68,7 +68,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     stream = ffmpeg.overwrite_output(stream)
 
-    def msg_reader(queue: queue.Queue, temp_msg_storage: List = None):
+    def msg_reader(queue: queue.Queue, msg_storage: List = None):
         total_duration = float(ffmpegArgs.probe_info["format"]["duration"])
         bar = tqdm(total=round(total_duration, 2), leave=ffmpegArgs.encode_option.leave, dynamic_ncols=True)
         info = {
@@ -84,8 +84,8 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
             if msg["type"] == "stderr":
                 if logger.isEnabledFor(LogLevel.DEBUG):
                     logger.debug(f"ffmpeg output str: \n{pformat(msg)}")
-                if temp_msg_storage != None:
-                    temp_msg_storage.append(msg["msg"])
+                if msg_storage != None:
+                    msg_storage.append(msg["msg"])
 
             elif msg["type"] == "stdout":
                 update_value = None
@@ -144,20 +144,23 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     try:
         if ffmpegArgs.encode_option.use_progressbar:
             msg_queue = queue.Queue()
-            temp_msg_storage = []
+            msg_storage = []
             process = progress.run_ffmpeg_process_with_msg_queue(stream, msg_queue)
             utils.set_low_process_priority(process.pid)
 
-            Thread(target=msg_reader, args=[msg_queue, temp_msg_storage]).start()
+            watch_thread = Thread(target=msg_reader, args=[msg_queue, msg_storage])
+            watch_thread.start()
 
             code, result = utils.process_control_wait(process)
+
+            watch_thread.join()
 
             if code != 0:
                 if result == "suspend":
                     ffmpegArgs.file_info.status = FileTaskStatus.SUSPEND
                     raise RuntimeWarning("사용자 입력에 의해 취소되었습니다.")
                 else:
-                    raise Exception("프로세스가 올바르게 종료되지 않았습니다.\nstderr: " + "".join(temp_msg_storage))
+                    raise Exception("프로세스가 올바르게 종료되지 않았습니다.\nstderr: " + "".join(msg_storage))
 
         else:
             process = ffmpeg.run_async(stream_spec=stream, pipe_stdout=True, pipe_stderr=True)
