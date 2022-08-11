@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from py_media_compressor import log, utils
 from py_media_compressor.common import progress
-from py_media_compressor.const import STREAM_FILTER
+from py_media_compressor.const import IGNORE_STREAM_FILTER
 from py_media_compressor.encoder import add_auto_args
 from py_media_compressor.model import FileInfo, FFmpegArgs
 from py_media_compressor.model.enum import FileTaskStatus, LogLevel, LogDestination
@@ -50,13 +50,14 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     if not ffmpegArgs.is_only_audio and ffmpegArgs.encode_option.is_cuda and os.path.splitext(ffmpegArgs.file_info.input_filepath)[1] not in [".wmv"]:  # wmv 컨테이너 중, 하드웨어 디코드 오류가 발생하는 문제가 있음
         input_Args["hwaccel"] = "cuda"
+        logger.info("CUDA 디코더 활성화")
 
     stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath, **input_Args)
 
     ignored_streams = []
     streams = []
     for stm in ffmpegArgs.probe_info["streams"]:
-        if str(stm["codec_type"]).lower() in ["video", "audio"] and str(stm["codec_name"]).lower() not in STREAM_FILTER:
+        if str(stm.get("codec_type", "")).lower() in ["video", "audio"] and str(stm.get("codec_name", "")).lower() not in IGNORE_STREAM_FILTER:
             streams.append(stream[str(stm["index"])])
         else:
             ignored_streams.append(stm)

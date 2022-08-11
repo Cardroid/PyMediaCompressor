@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 import ffmpeg
 
 from py_media_compressor.common import DictDataExtendBase
-from py_media_compressor.const import STREAM_FILTER
+from py_media_compressor.const import IGNORE_STREAM_FILTER
 from py_media_compressor.model import FileInfo, EncodeOption
 
 
@@ -29,7 +29,7 @@ class FFmpegArgs(DictDataExtendBase):
         assert streams != None, "스트림을 불러올 수 없습니다."
 
         for stream in streams:
-            if self._video_stream == None and stream["codec_type"] == "video" and stream["codec_name"] not in STREAM_FILTER:
+            if self._video_stream == None and stream["codec_type"] == "video" and stream["codec_name"] not in IGNORE_STREAM_FILTER:
                 self._video_stream = stream
             elif stream["codec_type"] == "audio":
                 self._audio_streams.append(stream)
