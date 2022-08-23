@@ -142,10 +142,13 @@ def process_control_wait(process: subprocess.Popen):
         kb = KBHit()
 
         while not is_process_ended:
-            if kb.kbhit():
-                key = kb.getch()
-                if key == "p":
-                    q.put("pause")
+            try:
+                if kb.kbhit():
+                    key = kb.getch()
+                    if key == "p":
+                        q.put("pause")
+            except:
+                pass
             time.sleep(0.1)
 
         kb.set_normal_term()

@@ -1,8 +1,8 @@
 import os
-import shutil
 import warnings
 
 from tqdm import TqdmWarning, tqdm
+import bitmath
 
 from py_media_compressor import log, encoder, model, utils
 from py_media_compressor.encoder import args_builder
@@ -96,14 +96,11 @@ def main():
     logger.info(f"출력 디렉토리: {output_dirpath}")
     os.makedirs(output_dirpath, exist_ok=True)
 
-    # log.LogDest = log.LogDestination.FILE
-
-    is_replace = args["replace"]
-    is_force = args["force"]
     is_save_error_output = args["save_error_output"]
     already_exists_mode = args["already_exists_mode"]
     try:
         max_height = int(args["height"])
+        assert max_height > 0
     except:
         max_height = 1440
 
@@ -112,13 +109,14 @@ def main():
 
     encode_option = model.EncodeOption(
         maxHeight=max_height,
-        isForce=is_force,
+        isForce=args["force"],
         codec=args["codec"],
         crf=args["crf"],
         removeErrorOutput=not is_save_error_output,
         useProgressbar=True,
         leave=False,
         isCuda=args["cuda"],
+        isReplace=args["replace"],
     )
 
     file_infos.sort(key=lambda fi: fi.input_filesize)
@@ -126,6 +124,11 @@ def main():
     ffmpeg_args: model.FFmpegArgs
     for file_info in (file_info_tqdm := tqdm(file_infos, leave=False, dynamic_ncols=True)):
         file_info_tqdm.set_description(f"Processing... {os.path.basename(file_info.input_filepath)}")
+
+        # tqdm 소스 파일 크기 표시
+        input_file_size_h = str(bitmath.best_prefix(int(file_info.input_filesize), system=bitmath.SI)).split(" ")
+        input_file_size_h = f"{round(float(input_file_size_h[0]), 1)} {input_file_size_h[1]}"
+        file_info_tqdm.set_postfix(size=input_file_size_h)
 
         try:
             ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option.clone())
@@ -152,7 +155,10 @@ def main():
             logger.info(f"이미 출력파일이 존재합니다... skipped.")
             continue
 
+        is_replace = ffmpeg_args.encode_option.is_replace
+
         file_info = encoder.media_compress_encode(ffmpeg_args)
+        del ffmpeg_args
 
         if file_info.status == FileTaskStatus.ERROR:
             logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}")
@@ -164,31 +170,44 @@ def main():
                         dest_filepath = os.path.splitext(fileInfo.input_filepath)[0] + os.path.splitext(fileInfo.output_filepath)[1]
                         src_filepath = fileInfo.output_filepath
 
-                        shutil.move(src_filepath, dest_filepath)
+                        is_removed = False
+                        if os.path.basename(fileInfo.input_filepath).lower() == os.path.basename(fileInfo.output_filepath).lower() and os.path.isfile(
+                            fileInfo.input_filepath
+                        ):  # 파일 시스템이 대소문자를 구분하지 않을 경우
+                            is_removed = True
+                            utils.remove(fileInfo.input_filepath)
+
+                        utils.move(src_filepath, dest_filepath)
                         fileInfo.output_filepath = dest_filepath
 
                         utils.set_file_permission(fileInfo.output_filepath)
 
-                        if os.path.basename(fileInfo.input_filepath) != os.path.basename(fileInfo.output_filepath):
-                            os.remove(fileInfo.input_filepath)
+                        if not is_removed and os.path.basename(fileInfo.input_filepath) != os.path.basename(fileInfo.output_filepath) and os.path.isfile(fileInfo.input_filepath):
+                            utils.remove(fileInfo.input_filepath)
 
                         logger.info(f"덮어쓰기 성공")
 
+                    def copy_input_output(fileInfo: model.FileInfo):
+                        logger.info(f"스트림 복사 및 메타데이터를 삽입합니다.")
+                        fileInfo.status = FileTaskStatus.INIT
+                        ffmpeg_args = model.FFmpegArgs(fileInfo=fileInfo, encodeOption=encode_option.clone())
+                        args_builder.add_stream_copy_args(ffmpegArgs=ffmpeg_args)
+                        args_builder.add_metadata_args(ffmpegArgs=ffmpeg_args)
+                        fileInfo = encoder.media_compress_encode(ffmpegArgs=ffmpeg_args)
+                        replace_input_output(fileInfo=fileInfo)
+                        fileInfo.output_filepath = fileInfo.input_filepath
+
                     try:
-                        if file_info.input_filesize > file_info.output_filesize or os.path.splitext(file_info.input_filepath)[1] != os.path.splitext(file_info.output_filepath)[1]:
+                        if (
+                            file_info.input_filesize > file_info.output_filesize
+                            or os.path.splitext(file_info.input_filepath)[1].lower() != os.path.splitext(file_info.output_filepath)[1].lower()
+                        ):
                             replace_input_output(fileInfo=file_info)
                         else:
-                            logger.info(f"원본 크기가 더 큽니다. 출력파일을 삭제합니다.")
-                            os.remove(file_info.output_filepath)
+                            logger.warning(f"덮어쓰기 조건을 만족하지 못합니다. 출력파일을 삭제합니다.\nFileInfo: {file_info}")
+                            utils.remove(file_info.output_filepath)
 
-                            logger.info(f"스트림 복사 및 메타데이터를 삽입합니다.")
-                            file_info.status = FileTaskStatus.INIT
-                            ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option.clone())
-                            args_builder.add_stream_copy_args(ffmpegArgs=ffmpeg_args)
-                            args_builder.add_metadata_args(ffmpegArgs=ffmpeg_args)
-                            file_info = encoder.media_compress_encode(ffmpegArgs=ffmpeg_args)
-                            replace_input_output(fileInfo=file_info)
-                            file_info.output_filepath = file_info.input_filepath
+                            copy_input_output(fileInfo=file_info)
                     except Exception:
                         logger.error(f"Replace 작업 실패", exc_info=True)
         elif file_info.status == FileTaskStatus.SUSPEND:

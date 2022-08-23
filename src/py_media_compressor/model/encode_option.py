@@ -12,6 +12,7 @@ class EncodeOption(DictDataBase):
         useProgressbar: bool = False,
         leave: bool = True,
         isCuda: bool = False,
+        isReplace: bool = False,
     ) -> None:
         """인코드 옵션
 
@@ -24,6 +25,7 @@ class EncodeOption(DictDataBase):
             useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
             leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
             isCuda (bool, optional): CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다. Defaults to False.
+            isReplace (bool, optional): 원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐 경우, 출력파일이 삭제됩니다. Defaults to False.
         """
 
         assert isinstance(maxHeight, int)
@@ -34,6 +36,9 @@ class EncodeOption(DictDataBase):
         assert isinstance(useProgressbar, bool)
         assert isinstance(leave, bool)
         assert isinstance(isCuda, bool)
+        assert isinstance(isReplace, bool)
+
+        super().__init__()
 
         if crf < 0:
             if codec == "h.264":
@@ -41,18 +46,17 @@ class EncodeOption(DictDataBase):
             elif codec == "h.265":
                 crf = 28
 
-        super().__init__(
-            data={
-                "max_height": maxHeight,
-                "is_force": isForce,
-                "codec": codec,
-                "crf": crf,
-                "remove_error_output": removeErrorOutput,
-                "use_progressbar": useProgressbar,
-                "leave": leave,
-                "is_cuda": isCuda,
-            }
-        )
+        self._data = {
+            "max_height": maxHeight,
+            "is_force": isForce,
+            "codec": codec,
+            "crf": crf,
+            "remove_error_output": removeErrorOutput,
+            "use_progressbar": useProgressbar,
+            "leave": leave,
+            "is_cuda": isCuda,
+            "is_replace": isReplace,
+        }
 
     def clone(self):
         clone_option = EncodeOption()
@@ -89,4 +93,8 @@ class EncodeOption(DictDataBase):
 
     @property
     def is_cuda(self) -> bool:
+        return self._get_value()
+
+    @property
+    def is_replace(self) -> bool:
         return self._get_value()

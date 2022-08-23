@@ -1,7 +1,8 @@
 import os
+import shutil
 import hashlib
-from glob import escape, glob
 import platform
+from glob import escape, glob
 from typing import Dict, List
 
 import yaml
@@ -28,7 +29,7 @@ def get_media_files(path: str, useRealpath=False, mediaExtFilter: List[str] = No
         path = os.path.join(escape(path), "**")
 
         if mediaExtFilter != None:
-            ext_filter = lambda p: os.path.isfile(p) and os.path.splitext(p)[1] in mediaExtFilter
+            ext_filter = lambda p: os.path.isfile(p) and os.path.splitext(p)[1].lower() in mediaExtFilter
         else:
             ext_filter = lambda p: os.path.isfile(p)
 
@@ -80,13 +81,13 @@ def overwrite_small_file(originFilepath: str, destinationFilepath: str, orginFil
 
     if is_need_remove:
         try:
-            os.replace(originFilepath, destinationFilepath)
+            move(originFilepath, destinationFilepath)
             is_remove_success = True
         except:
             is_remove_success = False
     elif orginFileRemove:
         try:
-            os.remove(originFilepath)
+            remove(originFilepath)
         except:
             pass
 
@@ -108,3 +109,16 @@ def save_config(config: Dict, filepath: str):
 def load_config(filepath: str) -> Dict:
     with open(filepath, "r", encoding="utf-8") as f:
         return yaml.load(f, Loader=yaml.FullLoader)
+
+
+def move(sourcePath, destPath):
+    shutil.move(sourcePath, destPath)
+
+
+def remove(path):
+    if os.path.isfile(path):
+        os.remove(path)
+    elif os.path.isdir(path):
+        shutil.rmtree(path)
+    else:
+        raise FileNotFoundError(path)

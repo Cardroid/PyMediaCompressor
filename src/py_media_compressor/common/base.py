@@ -26,34 +26,30 @@ class DictBase(metaclass=ABCMeta):
 
 
 class DictDataBase(DictBase):
-    def __init__(self, data: Dict = {}) -> None:
+    def __init__(self) -> None:
         super().__init__()
-
-        if not isinstance(data, dict):
-            data = {}
-
-        self._data = data
+        self._data = {}
 
     def _as_dict(self) -> Dict[str, Any]:
         return self._data
 
-    def __get_func_name(self):
-        return inspect.stack(0)[2][3]
+    def __get_func_name(self, deep: int = 2):
+        return inspect.stack(0)[deep][3]
 
-    def _get_value(self, key: Union[str, None] = None, default=None):
-        return self._data.get(self.__get_func_name() if key == None else key, default)
+    def _get_value(self, key: Union[str, None] = None, default=None, deep: int = 2):
+        return self._data.get(self.__get_func_name(deep=deep) if key == None else key, default)
 
-    def _set_value(self, value, key: Union[str, None] = None):
-        self._data[self.__get_func_name() if key == None else key] = value
+    def _set_value(self, value, key: Union[str, None] = None, deep: int = 2):
+        self._data[self.__get_func_name(deep=deep) if key == None else key] = value
 
-    def _set_value_pipe(self, value, key: Union[str, None] = None):
-        self._set_value(value=value, key=key)
+    def _set_value_pipe(self, value, key: Union[str, None] = None, deep: int = 3):
+        self._set_value(value=value, key=key, deep=deep)
         return value
 
 
 class DictDataExtendBase(DictDataBase):
-    def __init__(self, data: Dict = {}) -> None:
-        super().__init__(data)
+    def __init__(self) -> None:
+        super().__init__()
 
     def __contains__(self, item):
         return item in self._data

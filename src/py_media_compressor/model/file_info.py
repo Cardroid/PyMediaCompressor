@@ -7,7 +7,9 @@ from py_media_compressor.model.enum import FileTaskStatus
 
 class FileInfo(DictDataBase):
     def __init__(self, inputFilepath: str) -> None:
-        super().__init__(data={"input_filepath": inputFilepath})
+        super().__init__()
+
+        self._data = {"input_filepath": inputFilepath}
 
         assert self.is_input_file_exist, f"입력 파일이 존재하지 않습니다. Filepath: {inputFilepath}"
 
