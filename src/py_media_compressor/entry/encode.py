@@ -170,12 +170,19 @@ def main():
                         dest_filepath = os.path.splitext(fileInfo.input_filepath)[0] + os.path.splitext(fileInfo.output_filepath)[1]
                         src_filepath = fileInfo.output_filepath
 
+                        is_removed = False
+                        if os.path.basename(fileInfo.input_filepath).lower() == os.path.basename(fileInfo.output_filepath).lower() and os.path.isfile(
+                            fileInfo.input_filepath
+                        ):  # 파일 시스템이 대소문자를 구분하지 않을 경우
+                            is_removed = True
+                            utils.remove(fileInfo.input_filepath)
+
                         utils.move(src_filepath, dest_filepath)
                         fileInfo.output_filepath = dest_filepath
 
                         utils.set_file_permission(fileInfo.output_filepath)
 
-                        if os.path.basename(fileInfo.input_filepath) != os.path.basename(fileInfo.output_filepath):
+                        if not is_removed and os.path.basename(fileInfo.input_filepath) != os.path.basename(fileInfo.output_filepath) and os.path.isfile(fileInfo.input_filepath):
                             utils.remove(fileInfo.input_filepath)
 
                         logger.info(f"덮어쓰기 성공")
@@ -191,7 +198,10 @@ def main():
                         fileInfo.output_filepath = fileInfo.input_filepath
 
                     try:
-                        if file_info.input_filesize > file_info.output_filesize or os.path.splitext(file_info.input_filepath)[1] != os.path.splitext(file_info.output_filepath)[1]:
+                        if (
+                            file_info.input_filesize > file_info.output_filesize
+                            or os.path.splitext(file_info.input_filepath)[1].lower() != os.path.splitext(file_info.output_filepath)[1].lower()
+                        ):
                             replace_input_output(fileInfo=file_info)
                         else:
                             logger.warning(f"덮어쓰기 조건을 만족하지 못합니다. 출력파일을 삭제합니다.\nFileInfo: {file_info}")

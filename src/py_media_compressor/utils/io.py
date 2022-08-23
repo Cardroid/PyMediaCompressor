@@ -29,7 +29,7 @@ def get_media_files(path: str, useRealpath=False, mediaExtFilter: List[str] = No
         path = os.path.join(escape(path), "**")
 
         if mediaExtFilter != None:
-            ext_filter = lambda p: os.path.isfile(p) and os.path.splitext(p)[1] in mediaExtFilter
+            ext_filter = lambda p: os.path.isfile(p) and os.path.splitext(p)[1].lower() in mediaExtFilter
         else:
             ext_filter = lambda p: os.path.isfile(p)
 
