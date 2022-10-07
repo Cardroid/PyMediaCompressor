@@ -110,7 +110,7 @@ def add_audio_args(ffmpegArgs: FFmpegArgs):
         _is_libfdk_aac_enabled = stdout.startswith("Encoder libfdk_aac [Fraunhofer FDK AAC]")
 
     for idx, audio_stream_info in enumerate(ffmpegArgs.audio_streams):
-        if audio_stream_info["codec_name"] in ["aac", "mp3"] and (bit_rate := audio_stream_info.get("bit_rate")) != None and 0 < int(bit_rate) < 512_000:
+        if (bit_rate := audio_stream_info.get("bit_rate")) != None and 0 < int(bit_rate) < 512_000 and audio_stream_info["codec_name"] in ["aac", "mp3"]:
             ffmpegArgs[f"c:a:{idx}"] = "copy"
         else:
             ffmpegArgs[f"c:a:{idx}"] = "libfdk_aac" if _is_libfdk_aac_enabled else "aac"
