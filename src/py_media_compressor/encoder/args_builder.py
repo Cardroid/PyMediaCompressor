@@ -85,11 +85,15 @@ def add_video_args(ffmpegArgs: FFmpegArgs):
         if height > (max_height := ffmpegArgs.encode_option.max_height):
             is_even = round(int(width) * max_height / height) % 2 == 0
             ffmpegArgs["vf"] = f"scale={'-1' if is_even else '-2'}:{max_height}"
-        elif (is_wd2 := width % 2 == 1) or (is_hd2 := height % 2 == 1):
+        else:
+            is_wd2 = width % 2 == 1
+            is_hd2 = height % 2 == 1
+
             if is_wd2:
                 width += 1
             if is_hd2:
                 height += 1
+
             ffmpegArgs["vf"] = f"scale={width}:{height}"
 
     if logger.isEnabledFor(LogLevel.DEBUG):
