@@ -1,4 +1,5 @@
 import os
+import math
 from time import time
 
 from py_media_compressor import log, version
@@ -83,7 +84,13 @@ def add_video_args(ffmpegArgs: FFmpegArgs):
             height = ffmpegArgs.video_stream.get("coded_height")
 
         if height > (max_height := ffmpegArgs.encode_option.max_height):
-            is_even = round(int(width) * max_height / height) % 2 == 0
+            width_calc = int(width) * max_height / height
+
+            # round 함수의 기능을 사사오입 법칙을 제외하고 직접 구현
+            if width_calc - (width_calc := math.floor(width_calc)) >= 0.5:
+                width_calc += 1
+
+            is_even = width_calc % 2 == 0
             ffmpegArgs["vf"] = f"scale={'-1' if is_even else '-2'}:{max_height}"
         else:
             is_wd2 = width % 2 == 1
