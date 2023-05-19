@@ -133,7 +133,7 @@ def main():
         try:
             ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option.clone())
         except Exception:
-            logger.error(f"파일 정보를 불러오는 도중 오류가 발생했습니다. Skipped.\nFileInfo: {pformat(ffmpeg_args)}", exc_info=True)
+            logger.error(f"파일 정보를 불러오는 도중 오류가 발생했습니다. Skipped.\nFileInfo: {pformat(file_info)}", exc_info=True)
             continue
 
         try:
