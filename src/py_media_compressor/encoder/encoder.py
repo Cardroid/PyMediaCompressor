@@ -11,8 +11,8 @@ from py_media_compressor import log, utils
 from py_media_compressor.common import progress
 from py_media_compressor.const import IGNORE_STREAM_FILTER
 from py_media_compressor.encoder import add_auto_args
-from py_media_compressor.model import FileInfo, FFmpegArgs
-from py_media_compressor.model.enum import FileTaskStatus, LogLevel, LogDestination
+from py_media_compressor.model import FFmpegArgs, FileInfo
+from py_media_compressor.model.enum import FileTaskStatus, LogDestination, LogLevel
 from py_media_compressor.utils import pformat
 
 
@@ -48,7 +48,11 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     input_Args = {}
 
-    if not ffmpegArgs.is_only_audio and ffmpegArgs.encode_option.is_cuda and os.path.splitext(ffmpegArgs.file_info.input_filepath)[1] not in [".wmv"]:  # wmv 컨테이너 중, 하드웨어 디코드 오류가 발생하는 문제가 있음
+    if (
+        not ffmpegArgs.is_only_audio
+        and ffmpegArgs.encode_option.is_cuda
+        and os.path.splitext(ffmpegArgs.file_info.input_filepath)[1] not in [".wmv"]
+    ):  # wmv 컨테이너 중, 하드웨어 디코드 오류가 발생하는 문제가 있음
         input_Args["hwaccel"] = "cuda"
         logger.info("CUDA 디코더 활성화")
 
@@ -57,13 +61,18 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     ignored_streams = []
     streams = []
     for stm in ffmpegArgs.probe_info["streams"]:
-        if str(stm.get("codec_type", "")).lower() in ["video", "audio"] and str(stm.get("codec_name", "")).lower() not in IGNORE_STREAM_FILTER:
+        if (
+            str(stm.get("codec_type", "")).lower() in ["video", "audio"]
+            and str(stm.get("codec_name", "")).lower() not in IGNORE_STREAM_FILTER
+        ):
             streams.append(stream[str(stm["index"])])
         else:
             ignored_streams.append(stm)
 
     if len(ignored_streams) > 0:
-        logger.warning(f"무시된 스트림이 존재합니다.\nIgnored Streams: {pformat(ignored_streams)}\nFileInfo: {pformat(ffmpegArgs.file_info)}")
+        logger.warning(
+            f"무시된 스트림이 존재합니다.\nIgnored Streams: {pformat(ignored_streams)}\nFileInfo: {pformat(ffmpegArgs.file_info)}"
+        )
 
     stream = ffmpeg.output(*streams, **ffmpeg_args_dict)
 
@@ -92,14 +101,26 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
             elif msg["type"] == "stdout":
                 update_value = None
-                if "out_time_ms" in msg:
-                    time = max(round(float(msg["out_time_ms"]) / 1000000.0, 2), 0)
-                    update_value = time - bar.n
-                elif "progress" in msg and msg["progress"] == "end":
-                    update_value = bar.total - bar.n
+                try:
+                    if "out_time_ms" in msg:
+                        time = max(round(float(msg["out_time_ms"]) / 1000000.0, 2), 0)
+                        update_value = time - bar.n
+                    elif "progress" in msg and msg["progress"] == "end":
+                        update_value = bar.total - bar.n
+                except ValueError:
+                    update_value = None
 
                 for key, value in msg.items():
-                    if key in ["frame", "fps", "total_size", "bitrate", "out_time", "speed", "dup_frames", "drop_frames"]:
+                    if key in [
+                        "frame",
+                        "fps",
+                        "total_size",
+                        "bitrate",
+                        "out_time",
+                        "speed",
+                        "dup_frames",
+                        "drop_frames",
+                    ]:
                         if key == "total_size":
                             key = "size"
                             p_value = str(bitmath.best_prefix(int(value), system=bitmath.SI)).split(" ")
@@ -135,7 +156,10 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     def error_output_check(ffmpegArgs: FFmpegArgs):
         if (
             ffmpegArgs.encode_option.remove_error_output
-            and (ffmpegArgs.file_info.status == FileTaskStatus.ERROR or ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND)
+            and (
+                ffmpegArgs.file_info.status == FileTaskStatus.ERROR
+                or ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND
+            )
             and os.path.isfile(ffmpegArgs.file_info.output_filepath)
         ):
             utils.remove(ffmpegArgs.file_info.output_filepath)
@@ -194,7 +218,9 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
         return error_output_check(ffmpegArgs)
 
 
-def get_source_file(inputPaths: List[str], mediaExtFilter: Union[List[str], None] = None, useProgressbar=False, leave=True) -> Tuple[List, int, int]:
+def get_source_file(
+    inputPaths: List[str], mediaExtFilter: Union[List[str], None] = None, useProgressbar=False, leave=True
+) -> Tuple[List, int, int]:
     """입력 경로에서 소스파일을 검색합니다.
 
     Args:
@@ -252,7 +278,9 @@ def get_source_file(inputPaths: List[str], mediaExtFilter: Union[List[str], None
     dupl_file_count = 0
     source_infos = []
 
-    input_iter = tqdm(inputPaths, desc="입력 경로에서 파일 검색 중...", leave=leave, dynamic_ncols=True) if useProgressbar else inputPaths
+    input_iter = (
+        tqdm(inputPaths, desc="입력 경로에서 파일 검색 중...", leave=leave, dynamic_ncols=True) if useProgressbar else inputPaths
+    )
     for input_filepath in input_iter:
         if useProgressbar:
             input_iter.set_postfix(input_filepath=input_filepath)
@@ -266,11 +294,17 @@ def get_source_file(inputPaths: List[str], mediaExtFilter: Union[List[str], None
             if useProgressbar:
                 media_files_iter.set_postfix(filepath=detected_filepath.replace(input_filepath, ""))
 
-            if (dupl_test_result := duplicate_file_filter(detected_filepath, tqdm_manager=media_files_iter if useProgressbar else None))[0]:
+            if (
+                dupl_test_result := duplicate_file_filter(
+                    detected_filepath, tqdm_manager=media_files_iter if useProgressbar else None
+                )
+            )[0]:
                 detected_fileinfos.append(dupl_test_result[1])
                 file_count += 1
             else:
-                logger.warning(f"중복 파일이 제외되었습니다.\nOrigin: {pformat(dupl_test_result[1])}\nTest: {pformat(dupl_test_result[2])}")
+                logger.warning(
+                    f"중복 파일이 제외되었습니다.\nOrigin: {pformat(dupl_test_result[1])}\nTest: {pformat(dupl_test_result[2])}"
+                )
                 dupl_file_count += 1
 
         if len(detected_fileinfos) > 0:
