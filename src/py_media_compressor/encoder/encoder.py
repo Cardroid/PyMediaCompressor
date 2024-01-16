@@ -39,7 +39,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
         return ffmpegArgs.file_info
 
     if ffmpegArgs.file_info.status != FileTaskStatus.WAITING:
-        logger.error(f"해당 작업의 상태가 올비르지 않습니다. Skipped.")
+        logger.error("해당 작업의 상태가 올비르지 않습니다. Skipped.")
         return ffmpegArgs.file_info
 
     ffmpegArgs.file_info.status = FileTaskStatus.PROCESSING
@@ -96,7 +96,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
             if msg["type"] == "stderr":
                 if logger.isEnabledFor(LogLevel.DEBUG):
                     logger.debug(f"ffmpeg output str: \n{pformat(msg)}")
-                if msg_storage != None:
+                if msg_storage is not None:
                     msg_storage.append(msg["msg"])
 
             elif msg["type"] == "stdout":
@@ -145,7 +145,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
                         info[key] = value
 
-                if update_value != None:
+                if update_value is not None:
                     bar.set_postfix(info, refresh=False)
                     bar.update(update_value)
                 else:
@@ -210,7 +210,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
             logger.warning("작업이 중단되었습니다.", exc_info=True)
         else:
             ffmpegArgs.file_info.status = FileTaskStatus.ERROR
-            logger.error(f"미디어 처리 중 예외가 발생했습니다.", exc_info=True)
+            logger.error("미디어 처리 중 예외가 발생했습니다.", exc_info=True)
     else:
         ffmpegArgs.file_info.status = FileTaskStatus.SUCCESS
     finally:

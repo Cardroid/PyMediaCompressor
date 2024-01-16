@@ -1,7 +1,7 @@
-import time
 import platform
-import threading
 import subprocess
+import threading
+import time
 from queue import Queue
 from typing import Tuple
 
@@ -41,9 +41,9 @@ if platform.system() == "Windows":
 
 # Posix (Linux, OS X)
 else:
+    import atexit
     import sys
     import termios
-    import atexit
     from select import select
 
 """
@@ -54,8 +54,8 @@ Works transparently on Windows and Posix (Linux, Mac OS X).  Doesn't work
 with IDLE.
 
 This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as 
-published by the Free Software Foundation, either version 3 of the 
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
@@ -74,7 +74,6 @@ class KBHit:
             pass
 
         else:
-
             # Save the terminal settings
             self.fd = sys.stdin.fileno()
             self.new_term = termios.tcgetattr(self.fd)
@@ -147,7 +146,7 @@ def process_control_wait(process: subprocess.Popen):
                     key = kb.getch()
                     if key == "p":
                         q.put("pause")
-            except:
+            except Exception:
                 pass
             time.sleep(0.1)
 

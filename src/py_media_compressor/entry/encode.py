@@ -1,14 +1,14 @@
 import os
 import warnings
 
-from tqdm import TqdmWarning, tqdm
 import bitmath
+from tqdm import TqdmWarning, tqdm
 
-from py_media_compressor import log, encoder, model, utils
-from py_media_compressor.encoder import args_builder
-from py_media_compressor.utils import pformat
+from py_media_compressor import encoder, log, model, utils
 from py_media_compressor.const import FILE_EXT_FILTER_LIST
-from py_media_compressor.model.enum import LogLevel, FileTaskStatus
+from py_media_compressor.encoder import args_builder
+from py_media_compressor.model.enum import FileTaskStatus, LogLevel
+from py_media_compressor.utils import pformat
 
 # 경고 문구 무시
 warnings.filterwarnings(action="ignore", category=TqdmWarning)
@@ -21,17 +21,51 @@ def main():
 
     parser.add_argument("-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 및 디렉토리 경로")
     parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
-    parser.add_argument("-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐 경우, 출력파일이 삭제됩니다.")
-    parser.add_argument("-e", "--already_exists_mode", dest="already_exists_mode", choices=["overwrite", "skip", "numbering"], default="numbering", help="출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.")
-    parser.add_argument("-s", "--save_error_output", dest="save_error_output", action="store_true", help="오류가 발생한 출력물을 제거하지 않습니다.")
+    parser.add_argument(
+        "-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐 경우, 출력파일이 삭제됩니다."
+    )
+    parser.add_argument(
+        "-e",
+        "--already_exists_mode",
+        dest="already_exists_mode",
+        choices=["overwrite", "skip", "numbering"],
+        default="numbering",
+        help="출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.",
+    )
+    parser.add_argument(
+        "-s", "--save_error_output", dest="save_error_output", action="store_true", help="오류가 발생한 출력물을 제거하지 않습니다."
+    )
     parser.add_argument("-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 강제로, 재압축합니다.")
-    parser.add_argument("-c", "--codec", dest="codec", choices=["h.264", "h.265"], default="h.264", help="인코더에 전달되는 비디오 코덱 옵션")
-    parser.add_argument("--crf", dest="crf", choices=range(-1, 52), default=-1, metavar="{-1~51}", help="인코더에 전달되는 crf 값 (-1을 입력하면 코덱에 따라 기본값이 자동으로 계산됩니다.) [h.264 = 23, h.265 = 28]")
+    parser.add_argument(
+        "-c", "--codec", dest="codec", choices=["h.264", "h.265"], default="h.264", help="인코더에 전달되는 비디오 코덱 옵션"
+    )
+    parser.add_argument(
+        "--crf",
+        dest="crf",
+        choices=range(-1, 52),
+        default=-1,
+        metavar="{-1~51}",
+        help="인코더에 전달되는 crf 값 (-1을 입력하면 코덱에 따라 기본값이 자동으로 계산됩니다.) [h.264 = 23, h.265 = 28]",
+    )
     parser.add_argument("--scan", dest="scan", action="store_true", help="해당 옵션을 사용하면, 입력 파일을 탐색하고, 실제 압축은 하지 않습니다.")
-    parser.add_argument("--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다. (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)")
+    parser.add_argument(
+        "--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다. (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)"
+    )
     parser.add_argument("--cuda", dest="cuda", action="store_true", help="CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다.")
-    parser.add_argument("--log-level", dest="log_level", choices=[ll.name.lower() for ll in LogLevel if ll.name != "DEFAULT"], default="info", help="로그 레벨 설정")
-    parser.add_argument("--log-mode", dest="log_mode", choices=["c", "f", "cf", "console", "file", "consolefile"], default="consolefile", help="로그 출력 모드")
+    parser.add_argument(
+        "--log-level",
+        dest="log_level",
+        choices=[ll.name.lower() for ll in LogLevel if ll.name != "DEFAULT"],
+        default="info",
+        help="로그 레벨 설정",
+    )
+    parser.add_argument(
+        "--log-mode",
+        dest="log_mode",
+        choices=["c", "f", "cf", "console", "file", "consolefile"],
+        default="consolefile",
+        help="로그 출력 모드",
+    )
     parser.add_argument("--log-path", dest="log_path", default=log.SETTINGS["dir"], help="로그 출력 경로")
 
     args = vars(parser.parse_args())
@@ -48,7 +82,10 @@ def main():
     logger.info("** 프로그램 시작점 **")
     logger.debug(f"입력 인수\n{pformat(args)}")
 
-    for info in (utils.check_command_availability("ffmpeg -version"), utils.check_command_availability("ffprobe -version")):
+    for info in (
+        utils.check_command_availability("ffmpeg -version"),
+        utils.check_command_availability("ffprobe -version"),
+    ):
         if not info[0] or logger.isEnabledFor(LogLevel.DEBUG):
             info_str = pformat(
                 {
@@ -66,7 +103,7 @@ def main():
         if logger.isEnabledFor(LogLevel.DEBUG):
             logger.debug(f"command 실행 가능 여부, 검사 정보: {info_str}")
 
-    logger.debug(f"ffmpeg, ffprobe 동작 확인 완료")
+    logger.debug("ffmpeg, ffprobe 동작 확인 완료")
 
     # 확장자 필터 로드
     ext_filter_config_filepath = os.path.join("config", "filter.yaml")
@@ -76,10 +113,12 @@ def main():
         ext_filter = {"exts": FILE_EXT_FILTER_LIST}
         utils.save_config(ext_filter, ext_filter_config_filepath)
 
-    logger.info(f"파일 확장자 필터 로드 완료")
+    logger.info("파일 확장자 필터 로드 완료")
 
     # 입력 소스 파일 추출 및 중복 제거
-    source_infos, file_count, dupl_file_count = encoder.get_source_file(args["input"], ext_filter.get("exts"), useProgressbar=True)
+    source_infos, file_count, dupl_file_count = encoder.get_source_file(
+        args["input"], ext_filter.get("exts"), useProgressbar=True
+    )
     file_infos = encoder.convert_SI2FI(source_infos)
 
     if args["scan"]:
@@ -101,7 +140,7 @@ def main():
     try:
         max_height = int(args["height"])
         assert max_height > 0
-    except:
+    except Exception:
         max_height = 1440
 
     if logger.isEnabledFor(LogLevel.DEBUG):
@@ -142,7 +181,9 @@ def main():
             logger.error(f"출력 파일 확장자를 추정할 수 없습니다. Skipped.\nFFmpegArgs: {pformat(ffmpeg_args)}", exc_info=True)
             continue
 
-        ffmpeg_args.file_info.output_filepath = os.path.join(output_dirpath, f"{os.path.splitext(os.path.basename(ffmpeg_args.file_info.input_filepath))[0]}{ext}")
+        ffmpeg_args.file_info.output_filepath = os.path.join(
+            output_dirpath, f"{os.path.splitext(os.path.basename(ffmpeg_args.file_info.input_filepath))[0]}{ext}"
+        )
 
         if already_exists_mode == "numbering":
             count = 0
@@ -152,7 +193,7 @@ def main():
                 output_filepath = f"{temp_filename} ({(count := count + 1)}){ext}"
             ffmpeg_args.file_info.output_filepath = output_filepath
         elif already_exists_mode == "skip" and os.path.isfile(ffmpeg_args.file_info.output_filepath):
-            logger.info(f"이미 출력파일이 존재합니다... skipped.")
+            logger.info("이미 출력파일이 존재합니다... skipped.")
             continue
 
         is_replace = ffmpeg_args.encode_option.is_replace
@@ -161,17 +202,23 @@ def main():
         del ffmpeg_args
 
         if file_info.status == FileTaskStatus.ERROR:
-            logger.error(f"미디어를 처리하는 도중, 오류가 발생했습니다.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}")
+            logger.error(
+                f"미디어를 처리하는 도중, 오류가 발생했습니다.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}"
+            )
         elif (is_skipped := file_info.status == FileTaskStatus.SKIPPED) or file_info.status == FileTaskStatus.SUCCESS:
             if not is_skipped:
                 if is_replace:
 
                     def replace_input_output(fileInfo: model.FileInfo):
-                        dest_filepath = os.path.splitext(fileInfo.input_filepath)[0] + os.path.splitext(fileInfo.output_filepath)[1]
+                        dest_filepath = (
+                            os.path.splitext(fileInfo.input_filepath)[0] + os.path.splitext(fileInfo.output_filepath)[1]
+                        )
                         src_filepath = fileInfo.output_filepath
 
                         is_removed = False
-                        if os.path.basename(fileInfo.input_filepath).lower() == os.path.basename(fileInfo.output_filepath).lower() and os.path.isfile(
+                        if os.path.basename(fileInfo.input_filepath).lower() == os.path.basename(
+                            fileInfo.output_filepath
+                        ).lower() and os.path.isfile(
                             fileInfo.input_filepath
                         ):  # 파일 시스템이 대소문자를 구분하지 않을 경우
                             is_removed = True
@@ -182,13 +229,17 @@ def main():
 
                         utils.set_file_permission(fileInfo.output_filepath)
 
-                        if not is_removed and os.path.basename(fileInfo.input_filepath) != os.path.basename(fileInfo.output_filepath) and os.path.isfile(fileInfo.input_filepath):
+                        if (
+                            not is_removed
+                            and os.path.basename(fileInfo.input_filepath) != os.path.basename(fileInfo.output_filepath)
+                            and os.path.isfile(fileInfo.input_filepath)
+                        ):
                             utils.remove(fileInfo.input_filepath)
 
-                        logger.info(f"덮어쓰기 성공")
+                        logger.info("덮어쓰기 성공")
 
                     def copy_input_output(fileInfo: model.FileInfo):
-                        logger.info(f"스트림 복사 및 메타데이터를 삽입합니다.")
+                        logger.info("스트림 복사 및 메타데이터를 삽입합니다.")
                         fileInfo.status = FileTaskStatus.INIT
                         ffmpeg_args = model.FFmpegArgs(fileInfo=fileInfo, encodeOption=encode_option.clone())
                         args_builder.add_stream_copy_args(ffmpegArgs=ffmpeg_args)
@@ -200,7 +251,8 @@ def main():
                     try:
                         if (
                             file_info.input_filesize > file_info.output_filesize
-                            or os.path.splitext(file_info.input_filepath)[1].lower() != os.path.splitext(file_info.output_filepath)[1].lower()
+                            or os.path.splitext(file_info.input_filepath)[1].lower()
+                            != os.path.splitext(file_info.output_filepath)[1].lower()
                         ):
                             replace_input_output(fileInfo=file_info)
                         else:
@@ -209,9 +261,11 @@ def main():
 
                             copy_input_output(fileInfo=file_info)
                     except Exception:
-                        logger.error(f"Replace 작업 실패", exc_info=True)
+                        logger.error("Replace 작업 실패", exc_info=True)
         elif file_info.status == FileTaskStatus.SUSPEND:
-            logger.warning(f"사용자에 의해 모든 작업이 중단됨.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}")
+            logger.warning(
+                f"사용자에 의해 모든 작업이 중단됨.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}"
+            )
             break
         else:
             logger.error(f"상태가 올바르지 않은 작업이 있습니다.\nFileInfo: {file_info}")

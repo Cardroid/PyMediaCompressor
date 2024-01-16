@@ -19,7 +19,7 @@ class DictBase(metaclass=ABCMeta):
 
     def __str__(self) -> str:
         data = self.as_dict()
-        if data != None:
+        if data is not None:
             return pformat(data)
         else:
             return super().__str__()
@@ -37,10 +37,10 @@ class DictDataBase(DictBase):
         return inspect.stack(0)[deep][3]
 
     def _get_value(self, key: Union[str, None] = None, default=None, deep: int = 2):
-        return self._data.get(self.__get_func_name(deep=deep) if key == None else key, default)
+        return self._data.get(self.__get_func_name(deep=deep) if (key is None) else key, default)
 
     def _set_value(self, value, key: Union[str, None] = None, deep: int = 2):
-        self._data[self.__get_func_name(deep=deep) if key == None else key] = value
+        self._data[self.__get_func_name(deep=deep) if (key is None) else key] = value
 
     def _set_value_pipe(self, value, key: Union[str, None] = None, deep: int = 3):
         self._set_value(value=value, key=key, deep=deep)

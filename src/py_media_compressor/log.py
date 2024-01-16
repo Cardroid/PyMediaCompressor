@@ -1,11 +1,11 @@
-import os
-import sys
-import re
 import inspect
 import logging
-import logging.handlers
 import logging.config
-from typing import Dict, Union, Callable
+import logging.handlers
+import os
+import re
+import sys
+from typing import Callable, Dict, Union
 
 import colorlog
 import tqdm
@@ -178,7 +178,7 @@ def root_logger_setup():
             config = utils.load_config(SETTINGS["config_filepath"])
 
             is_enabled = config.get("enabled")
-            if is_enabled == None:
+            if is_enabled is None:
                 is_enabled = True
             else:
                 del config["enabled"]
@@ -193,7 +193,7 @@ def root_logger_setup():
 
             logger = get_logger(root_logger_setup)
 
-            logger.debug(f"설정 파일 로드 완료")
+            logger.debug("설정 파일 로드 완료")
         except Exception:
             is_enabled = True
             config = get_default_config()
@@ -201,12 +201,12 @@ def root_logger_setup():
 
             logger = get_logger(root_logger_setup)
 
-            logger.warning(f"설정 파일 로드 오류, 기본 설정이 사용됩니다.", exc_info=True)
+            logger.warning("설정 파일 로드 오류, 기본 설정이 사용됩니다.", exc_info=True)
 
     if not utils.is_str_empty_or_space(SETTINGS["config_filepath"]):
         config["enabled"] = is_enabled
         utils.save_config(config, SETTINGS["config_filepath"])
-        logger.debug(f"설정 파일 저장 완료")
+        logger.debug("설정 파일 저장 완료")
 
 
 # 출처: https://stackoverflow.com/a/38739634/12745351
@@ -231,27 +231,32 @@ class ConsoleLoggingHandler(logging.StreamHandler):
 class HandlerDestFilter(logging.Filter):
     LINE_FORMATTER_REGEX = re.compile(r"\n(?!\t-> )")
 
-    def __init__(self, name: str = "", mode: Union[int, str, LogDestination] = LogDestination.ALL, logLevel: Union[int, str, LogLevel] = LogLevel.DEFAULT) -> None:
+    def __init__(
+        self,
+        name: str = "",
+        mode: Union[int, str, LogDestination] = LogDestination.ALL,
+        logLevel: Union[int, str, LogLevel] = LogLevel.DEFAULT,
+    ) -> None:
         super().__init__(name)
 
         if isinstance(mode, int):
-            assert LogDestination.has_value(mode), f"지원하지 않는 mode 입니다."
+            assert LogDestination.has_value(mode), "지원하지 않는 mode 입니다."
             self.mode = LogDestination(mode)
         elif isinstance(mode, str):
-            assert LogDestination.has_name(mode), f"지원하지 않는 mode 입니다."
+            assert LogDestination.has_name(mode), "지원하지 않는 mode 입니다."
             self.mode = LogDestination[mode]
         else:
-            assert mode in LogDestination, f"지원하지 않는 mode 입니다."
+            assert mode in LogDestination, "지원하지 않는 mode 입니다."
             self.mode = mode
 
         if isinstance(logLevel, int):
-            assert LogLevel.has_value(logLevel), f"지원하지 않는 LogLevel 입니다."
+            assert LogLevel.has_value(logLevel), "지원하지 않는 LogLevel 입니다."
             self.log_level = LogLevel(logLevel)
         elif isinstance(logLevel, str):
-            assert LogLevel.has_name(logLevel), f"지원하지 않는 LogLevel 입니다."
+            assert LogLevel.has_name(logLevel), "지원하지 않는 LogLevel 입니다."
             self.log_level = LogLevel[logLevel]
         else:
-            assert logLevel in LogLevel, f"지원하지 않는 LogLevel 입니다."
+            assert logLevel in LogLevel, "지원하지 않는 LogLevel 입니다."
             self.log_level = logLevel
 
     def filter(self, record: logging.LogRecord):

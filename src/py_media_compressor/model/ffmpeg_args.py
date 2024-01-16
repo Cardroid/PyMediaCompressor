@@ -4,7 +4,7 @@ import ffmpeg
 
 from py_media_compressor.common import DictDataExtendBase
 from py_media_compressor.const import IGNORE_STREAM_FILTER
-from py_media_compressor.model import FileInfo, EncodeOption
+from py_media_compressor.model import EncodeOption, FileInfo
 
 
 class FFmpegArgs(DictDataExtendBase):
@@ -26,10 +26,14 @@ class FFmpegArgs(DictDataExtendBase):
 
         streams = self.probe_info.get("streams")
 
-        assert streams != None, "스트림을 불러올 수 없습니다."
+        assert streams is not None, "스트림을 불러올 수 없습니다."
 
         for stream in streams:
-            if self._video_stream == None and stream["codec_type"] == "video" and stream["codec_name"] not in IGNORE_STREAM_FILTER:
+            if (
+                self._video_stream is not None
+                and stream["codec_type"] == "video"
+                and stream["codec_name"] not in IGNORE_STREAM_FILTER
+            ):
                 self._video_stream = stream
             elif stream["codec_type"] == "audio":
                 self._audio_streams.append(stream)
@@ -69,7 +73,7 @@ class FFmpegArgs(DictDataExtendBase):
 
     @property
     def is_only_audio(self) -> bool:
-        return self._video_stream == None and len(self.audio_streams) > 0
+        return self._video_stream is None and len(self.audio_streams) > 0
 
     @property
     def expected_ext(self) -> str:
