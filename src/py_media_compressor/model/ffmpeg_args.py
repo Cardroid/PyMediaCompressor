@@ -31,7 +31,7 @@ class FFmpegArgs(DictDataExtendBase):
 
         for stream in streams:
             if (
-                self._video_stream is not None
+                self._video_stream is None
                 and stream["codec_type"] == "video"
                 and stream["codec_name"] not in IGNORE_STREAM_FILTER
             ):
