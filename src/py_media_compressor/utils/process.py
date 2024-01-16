@@ -7,7 +7,7 @@ from typing import Tuple
 
 import psutil
 
-from py_media_compressor.utils import string_decode
+from py_media_compressor.utils.str_format import string_decode
 
 
 def check_command_availability(command: str) -> Tuple[bool, str, str]:

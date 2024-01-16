@@ -2,7 +2,7 @@ import os
 
 from py_media_compressor import utils
 from py_media_compressor.common import DictDataBase
-from py_media_compressor.model.enum import FileTaskStatus
+from py_media_compressor.model.enum.file_task_status import FileTaskStatus
 
 
 class FileInfo(DictDataBase):

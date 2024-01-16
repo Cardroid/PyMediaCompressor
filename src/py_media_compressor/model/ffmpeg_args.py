@@ -4,7 +4,8 @@ import ffmpeg
 
 from py_media_compressor.common import DictDataExtendBase
 from py_media_compressor.const import IGNORE_STREAM_FILTER
-from py_media_compressor.model import EncodeOption, FileInfo
+from py_media_compressor.model.encode_option import EncodeOption
+from py_media_compressor.model.file_info import FileInfo
 
 
 class FFmpegArgs(DictDataExtendBase):

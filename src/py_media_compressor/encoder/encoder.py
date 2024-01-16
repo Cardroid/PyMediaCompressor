@@ -10,7 +10,7 @@ from tqdm import tqdm
 from py_media_compressor import log, utils
 from py_media_compressor.common import progress
 from py_media_compressor.const import IGNORE_STREAM_FILTER
-from py_media_compressor.encoder import add_auto_args
+from py_media_compressor.encoder.args_builder import add_auto_args
 from py_media_compressor.model import FFmpegArgs, FileInfo
 from py_media_compressor.model.enum import FileTaskStatus, LogDestination, LogLevel
 from py_media_compressor.utils import pformat
