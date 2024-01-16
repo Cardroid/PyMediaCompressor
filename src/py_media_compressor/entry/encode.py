@@ -26,8 +26,8 @@ def main():
     )
     parser.add_argument(
         "-p",
-        "--size_passer",
-        dest="size_passer",
+        "--size_skip",
+        dest="size_skip",
         action="store_true",
         help="빠른 작업을 위해 인코딩 도중 출력파일 크기가 입력파일 크기보다 커지는 순간 즉시 건너뜁니다.",
     )
@@ -163,7 +163,7 @@ def main():
         leave=False,
         isCuda=args["cuda"],
         isReplace=args["replace"],
-        isSizePasser=args["size_passer"],
+        isSizeSkip=args["size_skip"],
     )
 
     file_infos.sort(key=lambda fi: fi.input_filesize)

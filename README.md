@@ -67,7 +67,7 @@ optional arguments:
   -i INPUT              하나 이상의 입력 소스 파일 및 디렉토리 경로
   -o OUTPUT             출력 디렉토리 경로
   -r, --replace         원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐 경우, 출력파일이 삭제됩니다.
-  -p, --size_passer     빠른 작업을 위해 인코딩 도중 출력파일 크기가 입력파일 크기보다 커지는 순간 즉시 건너뜁니다.
+  -p, --size_skip       빠른 작업을 위해 인코딩 도중 출력파일 크기가 입력파일 크기보다 커지는 순간 즉시 건너뜁니다.
   -e {overwrite,skip,numbering}, --already_exists_mode {overwrite,skip,numbering}
                         출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.
   -s, --save_error_output
