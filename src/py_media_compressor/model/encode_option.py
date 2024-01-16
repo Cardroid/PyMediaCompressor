@@ -13,6 +13,7 @@ class EncodeOption(DictDataBase):
         leave: bool = True,
         isCuda: bool = False,
         isReplace: bool = False,
+        isSizePasser: bool = False,
     ) -> None:
         """인코드 옵션
 
@@ -26,6 +27,7 @@ class EncodeOption(DictDataBase):
             leave (bool, optional): 중첩된 진행바를 사용할 경우, False 를 권장합니다. Defaults to True.
             isCuda (bool, optional): CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다. Defaults to False.
             isReplace (bool, optional): 원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐 경우, 출력파일이 삭제됩니다. Defaults to False.
+            isSizePasser (bool, optional): 빠른 작업을 위해 인코딩 도중 출력파일 크기가 입력파일 크기보다 커지는 순간 즉시 건너뜁니다. Defaults to False.
         """
 
         assert isinstance(maxHeight, int)
@@ -37,6 +39,7 @@ class EncodeOption(DictDataBase):
         assert isinstance(leave, bool)
         assert isinstance(isCuda, bool)
         assert isinstance(isReplace, bool)
+        assert isinstance(isSizePasser, bool)
 
         super().__init__()
 
@@ -56,6 +59,7 @@ class EncodeOption(DictDataBase):
             "leave": leave,
             "is_cuda": isCuda,
             "is_replace": isReplace,
+            "is_size_passer": isSizePasser,
         }
 
     def clone(self):
@@ -97,4 +101,8 @@ class EncodeOption(DictDataBase):
 
     @property
     def is_replace(self) -> bool:
+        return self._get_value()
+
+    @property
+    def is_size_passer(self) -> bool:
         return self._get_value()

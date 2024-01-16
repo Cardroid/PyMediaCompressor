@@ -25,6 +25,13 @@ def main():
         "-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐 경우, 출력파일이 삭제됩니다."
     )
     parser.add_argument(
+        "-p",
+        "--size_passer",
+        dest="size_passer",
+        action="store_true",
+        help="빠른 작업을 위해 인코딩 도중 출력파일 크기가 입력파일 크기보다 커지는 순간 즉시 건너뜁니다.",
+    )
+    parser.add_argument(
         "-e",
         "--already_exists_mode",
         dest="already_exists_mode",
@@ -156,6 +163,7 @@ def main():
         leave=False,
         isCuda=args["cuda"],
         isReplace=args["replace"],
+        isSizePasser=args["size_passer"],
     )
 
     file_infos.sort(key=lambda fi: fi.input_filesize)
@@ -238,7 +246,7 @@ def main():
 
                         logger.info("덮어쓰기 성공")
 
-                    def copy_input_output(fileInfo: model.FileInfo):
+                    def streamcopy(fileInfo: model.FileInfo):
                         logger.info("스트림 복사 및 메타데이터를 삽입합니다.")
                         fileInfo.status = FileTaskStatus.INIT
                         ffmpeg_args = model.FFmpegArgs(fileInfo=fileInfo, encodeOption=encode_option.clone())
@@ -259,7 +267,7 @@ def main():
                             logger.warning(f"덮어쓰기 조건을 만족하지 못합니다. 출력파일을 삭제합니다.\nFileInfo: {file_info}")
                             utils.remove(file_info.output_filepath)
 
-                            copy_input_output(fileInfo=file_info)
+                            streamcopy(fileInfo=file_info)
                     except Exception:
                         logger.error("Replace 작업 실패", exc_info=True)
         elif file_info.status == FileTaskStatus.SUSPEND:
@@ -267,6 +275,11 @@ def main():
                 f"사용자에 의해 모든 작업이 중단됨.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}"
             )
             break
+        elif file_info.status == FileTaskStatus.PASS:
+            logger.warning(
+                f"작업이 통과되었습니다.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}"
+            )
+            utils.remove(file_info.output_filepath, raise_error=False)
         else:
             logger.error(f"상태가 올바르지 않은 작업이 있습니다.\nFileInfo: {file_info}")
 

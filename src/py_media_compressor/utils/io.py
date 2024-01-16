@@ -111,14 +111,20 @@ def load_config(filepath: str) -> Dict:
         return yaml.load(f, Loader=yaml.FullLoader)
 
 
-def move(sourcePath, destPath):
+def move(sourcePath: str, destPath: str):
     shutil.move(sourcePath, destPath)
 
 
-def remove(path):
-    if os.path.isfile(path):
-        os.remove(path)
-    elif os.path.isdir(path):
-        shutil.rmtree(path)
-    else:
-        raise FileNotFoundError(path)
+def remove(path: str, raise_error: bool = True):
+    try:
+        if os.path.isfile(path):
+            os.remove(path)
+        elif os.path.isdir(path):
+            shutil.rmtree(path)
+        else:
+            raise FileNotFoundError(path)
+    except Exception:
+        if raise_error:
+            raise
+        else:
+            pass

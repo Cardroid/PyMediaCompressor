@@ -3,7 +3,7 @@ import subprocess
 import threading
 import time
 from queue import Queue
-from typing import Tuple
+from typing import Optional, Tuple
 
 import psutil
 
@@ -116,12 +116,13 @@ class KBHit:
             return dr != []
 
 
-def process_control_wait(process: subprocess.Popen):
+def process_control_wait(process: subprocess.Popen, control_queue: Optional[Queue]):
     """프로세스를 조작가능한 상태로 종료를 기다립니다.
     비동기적 입력 코드는 https://stackoverflow.com/a/2409034/12745351 이곳에서 참고했습니다.
 
     Args:
         process (subprocess.Popen): 프로세스
+        control_queue (Optional[Queue]): 컨트롤 큐
 
     Returns:
         tuple[int | Any, str | None]: 프로세스 종료 코드, 종료 상태
@@ -135,7 +136,10 @@ def process_control_wait(process: subprocess.Popen):
     is_pause = False
     result = None
 
-    q = Queue()
+    if control_queue is None:
+        q = Queue()
+    else:
+        q = control_queue
 
     def wait_input():
         kb = KBHit()
@@ -173,6 +177,9 @@ def process_control_wait(process: subprocess.Popen):
                     else:
                         p_process.suspend()
                         is_pause = True
+                elif msg == "pass":
+                    p_process.kill()
+                    result = "pass"
     except KeyboardInterrupt:
         if p_process.is_running():
             p_process.kill()
