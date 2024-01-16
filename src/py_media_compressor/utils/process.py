@@ -1,13 +1,13 @@
-import time
 import platform
-import threading
 import subprocess
+import threading
+import time
 from queue import Queue
-from typing import Tuple
+from typing import Optional, Tuple
 
 import psutil
 
-from py_media_compressor.utils import string_decode
+from py_media_compressor.utils.str_format import string_decode
 
 
 def check_command_availability(command: str) -> Tuple[bool, str, str]:
@@ -41,9 +41,9 @@ if platform.system() == "Windows":
 
 # Posix (Linux, OS X)
 else:
+    import atexit
     import sys
     import termios
-    import atexit
     from select import select
 
 """
@@ -54,8 +54,8 @@ Works transparently on Windows and Posix (Linux, Mac OS X).  Doesn't work
 with IDLE.
 
 This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as 
-published by the Free Software Foundation, either version 3 of the 
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
@@ -74,7 +74,6 @@ class KBHit:
             pass
 
         else:
-
             # Save the terminal settings
             self.fd = sys.stdin.fileno()
             self.new_term = termios.tcgetattr(self.fd)
@@ -117,12 +116,13 @@ class KBHit:
             return dr != []
 
 
-def process_control_wait(process: subprocess.Popen):
+def process_control_wait(process: subprocess.Popen, control_queue: Optional[Queue]):
     """프로세스를 조작가능한 상태로 종료를 기다립니다.
     비동기적 입력 코드는 https://stackoverflow.com/a/2409034/12745351 이곳에서 참고했습니다.
 
     Args:
         process (subprocess.Popen): 프로세스
+        control_queue (Optional[Queue]): 컨트롤 큐
 
     Returns:
         tuple[int | Any, str | None]: 프로세스 종료 코드, 종료 상태
@@ -136,7 +136,10 @@ def process_control_wait(process: subprocess.Popen):
     is_pause = False
     result = None
 
-    q = Queue()
+    if control_queue is None:
+        q = Queue()
+    else:
+        q = control_queue
 
     def wait_input():
         kb = KBHit()
@@ -147,7 +150,7 @@ def process_control_wait(process: subprocess.Popen):
                     key = kb.getch()
                     if key == "p":
                         q.put("pause")
-            except:
+            except Exception:
                 pass
             time.sleep(0.1)
 
@@ -174,6 +177,9 @@ def process_control_wait(process: subprocess.Popen):
                     else:
                         p_process.suspend()
                         is_pause = True
+                elif msg == "pass":
+                    p_process.kill()
+                    result = "pass"
     except KeyboardInterrupt:
         if p_process.is_running():
             p_process.kill()

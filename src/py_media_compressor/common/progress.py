@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # source from https://github.com/kkroening/ffmpeg-python/issues/43
 
-from typing import IO
-import ffmpeg
 from queue import Queue
 from threading import Thread
+from typing import IO
+
+import ffmpeg
 
 from py_media_compressor import utils
 

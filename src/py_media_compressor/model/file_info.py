@@ -2,7 +2,7 @@ import os
 
 from py_media_compressor import utils
 from py_media_compressor.common import DictDataBase
-from py_media_compressor.model.enum import FileTaskStatus
+from py_media_compressor.model.enum.file_task_status import FileTaskStatus
 
 
 class FileInfo(DictDataBase):
@@ -65,7 +65,9 @@ class FileInfo(DictDataBase):
     def input_file_MD5(self) -> str:
         md5 = self._get_value()
 
-        if utils.is_str_empty_or_space(md5) or self.__input_file_MD5_size == self.input_filesize:  # 값의 신뢰도를 위해 이전 파일 크기와 현재 파일 크기가 같은지도 확인
+        if (
+            utils.is_str_empty_or_space(md5) or self.__input_file_MD5_size == self.input_filesize
+        ):  # 값의 신뢰도를 위해 이전 파일 크기와 현재 파일 크기가 같은지도 확인
             md5 = utils.get_MD5_hash(self.input_filepath)
             self.__input_file_MD5_size = self.input_filesize
             self._set_value(md5)
@@ -76,7 +78,9 @@ class FileInfo(DictDataBase):
     def output_file_MD5(self) -> str:
         md5 = self._get_value()
 
-        if utils.is_str_empty_or_space(md5) or self.__output_file_MD5_size == self.output_filesize:  # 값의 신뢰도를 위해 이전 파일 크기와 현재 파일 크기가 같은지도 확인
+        if (
+            utils.is_str_empty_or_space(md5) or self.__output_file_MD5_size == self.output_filesize
+        ):  # 값의 신뢰도를 위해 이전 파일 크기와 현재 파일 크기가 같은지도 확인
             md5 = utils.get_MD5_hash(self.output_filepath)
             self.__output_file_MD5_size = self.output_filesize
             self._set_value(md5)

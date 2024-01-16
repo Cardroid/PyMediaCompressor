@@ -47,6 +47,7 @@ usage: encode [-h]
               -i INPUT
               [-o OUTPUT]
               [-r]
+              [-p]
               [-e {overwrite,skip,numbering}]
               [-s]
               [-f]
@@ -65,8 +66,8 @@ optional arguments:
   -h, --help            show this help message and exit
   -i INPUT              하나 이상의 입력 소스 파일 및 디렉토리 경로
   -o OUTPUT             출력 디렉토리 경로
-  -r, --replace         원본 파일보다 작을 경우, 원본 파일을 덮어씁니다.
-                        아닐 경우, 출력파일이 삭제됩니다.
+  -r, --replace         원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐 경우, 출력파일이 삭제됩니다.
+  -p, --size_skip       빠른 작업을 위해 인코딩 도중 출력파일 크기가 입력파일 크기보다 커지는 순간 즉시 건너뜁니다.
   -e {overwrite,skip,numbering}, --already_exists_mode {overwrite,skip,numbering}
                         출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.
   -s, --save_error_output
@@ -74,12 +75,9 @@ optional arguments:
   -f, --force           이미 압축된 미디어 파일을 강제로, 재압축합니다.
   -c {h.264,h.265}, --codec {h.264,h.265}
                         인코더에 전달되는 비디오 코덱 옵션
-  --crf {-1~51}         인코더에 전달되는 crf 값
-                        (-1을 입력하면 코덱에 따라 기본값이 자동으로 계산됩니다.)
-                        [h.264 = 23, h.265 = 28]
+  --crf {-1~51}         인코더에 전달되는 crf 값 (-1을 입력하면 코덱에 따라 기본값이 자동으로 계산됩니다.) [h.264 = 23, h.265 = 28]
   --scan                해당 옵션을 사용하면, 입력 파일을 탐색하고, 실제 압축은 하지 않습니다.
-  --height HEIGHT       출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다.
-                        (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)
+  --height HEIGHT       출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다. (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)
   --cuda                CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다.
   --log-level {debug,info,warning,error,critical}
                         로그 레벨 설정

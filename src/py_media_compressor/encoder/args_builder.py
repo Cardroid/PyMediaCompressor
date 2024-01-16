@@ -1,13 +1,11 @@
-import os
 import math
+import os
 from time import time
 
-from py_media_compressor import log, version
+from py_media_compressor import log, utils, version
 from py_media_compressor.const import PROCESSER_NAME, PROCESSER_TAG_END
 from py_media_compressor.model import FFmpegArgs
-from py_media_compressor.model.enum import LogLevel, FileTaskStatus
-from py_media_compressor import utils
-
+from py_media_compressor.model.enum import FileTaskStatus, LogLevel
 
 _is_libfdk_aac_enabled = None
 
@@ -16,7 +14,7 @@ def _status_changer(func):
     def wrapper_function(**kwargs):
         result = func(**kwargs)
 
-        if (ffmpegArgs := kwargs.get("ffmpegArgs")) != None and ffmpegArgs.file_info.status == FileTaskStatus.INIT:
+        if (ffmpegArgs := kwargs.get("ffmpegArgs")) is not None and ffmpegArgs.file_info.status == FileTaskStatus.INIT:
             ffmpegArgs.file_info.status = FileTaskStatus.WAITING
 
         return result
@@ -78,9 +76,9 @@ def add_video_args(ffmpegArgs: FFmpegArgs):
         ffmpegArgs["preset"] = "veryslow"
 
         # 세로 또는 가로 픽셀 수가 짝수가 아닐 경우 발생하는 오류 처리 포함
-        if (width := ffmpegArgs.video_stream.get("width")) == None:
+        if (width := ffmpegArgs.video_stream.get("width")) is None:
             width = ffmpegArgs.video_stream.get("coded_width")
-        if (height := ffmpegArgs.video_stream.get("height")) == None:
+        if (height := ffmpegArgs.video_stream.get("height")) is None:
             height = ffmpegArgs.video_stream.get("coded_height")
 
         if height > (max_height := ffmpegArgs.encode_option.max_height):
@@ -116,17 +114,21 @@ def add_audio_args(ffmpegArgs: FFmpegArgs):
     # libfdk_aac 사용 가능할 경우, libfdk_aac 사용
     global _is_libfdk_aac_enabled
 
-    if _is_libfdk_aac_enabled == None:
+    if _is_libfdk_aac_enabled is None:
         _, stdout, _, _ = utils.check_command_availability("ffmpeg -hide_banner -h encoder=libfdk_aac")
         _is_libfdk_aac_enabled = stdout.startswith("Encoder libfdk_aac [Fraunhofer FDK AAC]")
 
     for idx, audio_stream_info in enumerate(ffmpegArgs.audio_streams):
-        if (bit_rate := audio_stream_info.get("bit_rate")) != None and 0 < int(bit_rate) < 512_000 and audio_stream_info["codec_name"] in ["aac", "mp3"]:
+        if (
+            (bit_rate := audio_stream_info.get("bit_rate")) is not None
+            and 0 < int(bit_rate) < 512_000
+            and audio_stream_info["codec_name"] in ["aac", "mp3"]
+        ):
             ffmpegArgs[f"c:a:{idx}"] = "copy"
         else:
             ffmpegArgs[f"c:a:{idx}"] = "libfdk_aac" if _is_libfdk_aac_enabled else "aac"
             ffmpegArgs["cutoff"] = 20000
-            ffmpegArgs[f"b:a:{idx}"] = 320_000 if bit_rate == None or int(bit_rate) > 320_000 else int(bit_rate)
+            ffmpegArgs[f"b:a:{idx}"] = 320_000 if bit_rate is None or int(bit_rate) > 320_000 else int(bit_rate)
 
     if logger.isEnabledFor(LogLevel.DEBUG):
         logger.debug(f"오디오 인수 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
@@ -138,7 +140,7 @@ def add_metadata_args(ffmpegArgs: FFmpegArgs):
 
     logger = log.get_logger(add_metadata_args)
 
-    if "format" in ffmpegArgs.probe_info and (tags := ffmpegArgs.probe_info["format"].get("tags")) != None:
+    if "format" in ffmpegArgs.probe_info and (tags := ffmpegArgs.probe_info["format"].get("tags")) is not None:
         _tags = tags
         tags = {}
         for key, value in _tags.items():
@@ -204,7 +206,7 @@ def add_metadata_args(ffmpegArgs: FFmpegArgs):
         # * 영상이 이미 처리된 경우
         logger.info(f"이미 처리된 미디어입니다.\nFileInfo: {ffmpegArgs.file_info}")
         if ffmpegArgs.encode_option.is_force:
-            logger.warning(f"강제로 재인코딩을 실시합니다... (is_force)")
+            logger.warning("강제로 재인코딩을 실시합니다... (is_force)")
         else:
             ffmpegArgs.file_info.status = FileTaskStatus.SKIPPED
 

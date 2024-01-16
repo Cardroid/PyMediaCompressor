@@ -7,10 +7,6 @@ class LogDestination(Flag):
     FILE = auto()
     ALL = CONSOLE | FILE
 
-    @staticmethod
-    def is_flag(item1: Flag, item2: Flag) -> bool:
-        return (item1.value & item2.value) != 0
-
     def is_flag(self, item: Flag) -> bool:
         return (self.value & item.value) != 0
 

@@ -1,5 +1,5 @@
-from enum import Enum, unique
 import logging
+from enum import Enum, unique
 
 
 @unique
