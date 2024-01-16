@@ -206,7 +206,12 @@ def main():
 
         is_replace = ffmpeg_args.encode_option.is_replace
 
-        file_info = encoder.media_compress_encode(ffmpeg_args)
+        try:
+            file_info = encoder.media_compress_encode(ffmpeg_args)
+        except Exception:
+            logger.error(f"처리하지 않은 오류가 발생하였습니다.\nArgs: {pformat(ffmpeg_args.as_dict())}")
+            raise
+
         del ffmpeg_args
 
         if file_info.status == FileTaskStatus.ERROR:
