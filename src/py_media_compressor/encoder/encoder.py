@@ -123,9 +123,9 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                     ]:
                         if key == "total_size":
                             key = "size"
-                            p_value = str(bitmath.best_prefix(int(value), system=bitmath.SI)).split(" ")
-                            f_value = round(float(p_value[0]), 1)
-                            value = f"{f_value} {p_value[1]}"
+                            f_value = int(value)
+                            p_value = str(bitmath.best_prefix(f_value, system=bitmath.SI)).split(" ")
+                            value = f"{round(float(p_value[0]), 1)} {p_value[1]}"
                             if file_info is not None and control_queue is not None:
                                 if f_value > file_info.input_filesize:
                                     control_queue.put("pass")
