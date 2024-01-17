@@ -77,5 +77,9 @@ class FFmpegArgs(DictDataExtendBase):
         return self._video_stream is None and len(self.audio_streams) > 0
 
     @property
+    def is_streamcopy(self) -> bool:
+        return "c:v" in self and self["c:v"] == "copy"
+
+    @property
     def expected_ext(self) -> str:
         return ".m4a" if self.is_only_audio else ".mp4"

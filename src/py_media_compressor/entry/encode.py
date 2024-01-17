@@ -219,11 +219,9 @@ def main():
             src_filepath = fileInfo.output_filepath
 
             is_removed = False
-            if os.path.basename(fileInfo.input_filepath).lower() == os.path.basename(
-                fileInfo.output_filepath
-            ).lower() and os.path.isfile(
-                fileInfo.input_filepath
-            ):  # 파일 시스템이 대소문자를 구분하지 않을 경우
+            if (  # 파일 시스템이 대소문자를 구분하지 않을 경우
+                os.path.basename(fileInfo.input_filepath).lower() == os.path.basename(fileInfo.output_filepath).lower()
+            ) and os.path.isfile(fileInfo.input_filepath):
                 is_removed = True
                 utils.remove(fileInfo.input_filepath)
 
