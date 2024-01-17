@@ -214,6 +214,43 @@ def main():
 
         del ffmpeg_args
 
+        def replace_input_output(fileInfo: model.FileInfo):
+            dest_filepath = os.path.splitext(fileInfo.input_filepath)[0] + os.path.splitext(fileInfo.output_filepath)[1]
+            src_filepath = fileInfo.output_filepath
+
+            is_removed = False
+            if os.path.basename(fileInfo.input_filepath).lower() == os.path.basename(
+                fileInfo.output_filepath
+            ).lower() and os.path.isfile(
+                fileInfo.input_filepath
+            ):  # 파일 시스템이 대소문자를 구분하지 않을 경우
+                is_removed = True
+                utils.remove(fileInfo.input_filepath)
+
+            utils.move(src_filepath, dest_filepath)
+            fileInfo.output_filepath = dest_filepath
+
+            utils.set_file_permission(fileInfo.output_filepath)
+
+            if (
+                not is_removed
+                and os.path.basename(fileInfo.input_filepath) != os.path.basename(fileInfo.output_filepath)
+                and os.path.isfile(fileInfo.input_filepath)
+            ):
+                utils.remove(fileInfo.input_filepath)
+
+            logger.info("덮어쓰기 성공")
+
+        def streamcopy(fileInfo: model.FileInfo):
+            logger.info("스트림 복사 및 메타데이터를 삽입합니다.")
+            fileInfo.status = FileTaskStatus.INIT
+            ffmpeg_args = model.FFmpegArgs(fileInfo=fileInfo, encodeOption=encode_option.clone())
+            args_builder.add_stream_copy_args(ffmpegArgs=ffmpeg_args)
+            args_builder.add_metadata_args(ffmpegArgs=ffmpeg_args)
+            fileInfo = encoder.media_compress_encode(ffmpegArgs=ffmpeg_args)
+            replace_input_output(fileInfo=fileInfo)
+            fileInfo.output_filepath = fileInfo.input_filepath
+
         if file_info.status == FileTaskStatus.ERROR:
             logger.error(
                 f"미디어를 처리하는 도중, 오류가 발생했습니다.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}"
@@ -221,46 +258,6 @@ def main():
         elif (is_skipped := file_info.status == FileTaskStatus.SKIPPED) or file_info.status == FileTaskStatus.SUCCESS:
             if not is_skipped:
                 if is_replace:
-
-                    def replace_input_output(fileInfo: model.FileInfo):
-                        dest_filepath = (
-                            os.path.splitext(fileInfo.input_filepath)[0] + os.path.splitext(fileInfo.output_filepath)[1]
-                        )
-                        src_filepath = fileInfo.output_filepath
-
-                        is_removed = False
-                        if os.path.basename(fileInfo.input_filepath).lower() == os.path.basename(
-                            fileInfo.output_filepath
-                        ).lower() and os.path.isfile(
-                            fileInfo.input_filepath
-                        ):  # 파일 시스템이 대소문자를 구분하지 않을 경우
-                            is_removed = True
-                            utils.remove(fileInfo.input_filepath)
-
-                        utils.move(src_filepath, dest_filepath)
-                        fileInfo.output_filepath = dest_filepath
-
-                        utils.set_file_permission(fileInfo.output_filepath)
-
-                        if (
-                            not is_removed
-                            and os.path.basename(fileInfo.input_filepath) != os.path.basename(fileInfo.output_filepath)
-                            and os.path.isfile(fileInfo.input_filepath)
-                        ):
-                            utils.remove(fileInfo.input_filepath)
-
-                        logger.info("덮어쓰기 성공")
-
-                    def streamcopy(fileInfo: model.FileInfo):
-                        logger.info("스트림 복사 및 메타데이터를 삽입합니다.")
-                        fileInfo.status = FileTaskStatus.INIT
-                        ffmpeg_args = model.FFmpegArgs(fileInfo=fileInfo, encodeOption=encode_option.clone())
-                        args_builder.add_stream_copy_args(ffmpegArgs=ffmpeg_args)
-                        args_builder.add_metadata_args(ffmpegArgs=ffmpeg_args)
-                        fileInfo = encoder.media_compress_encode(ffmpegArgs=ffmpeg_args)
-                        replace_input_output(fileInfo=fileInfo)
-                        fileInfo.output_filepath = fileInfo.input_filepath
-
                     try:
                         if (
                             file_info.input_filesize > file_info.output_filesize
@@ -285,6 +282,8 @@ def main():
                 f"작업이 통과되었습니다.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}"
             )
             utils.remove(file_info.output_filepath, raise_error=False)
+            if is_replace:
+                streamcopy(fileInfo=file_info)
         else:
             logger.error(f"상태가 올바르지 않은 작업이 있습니다.\nFileInfo: {file_info}")
 
