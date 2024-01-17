@@ -36,7 +36,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     if logger.isEnabledFor(LogLevel.INFO):
         logger.info(f"현재 작업 파일 정보: \n{pformat(ffmpegArgs.get_all_in_one_dict())}")
 
-    if ffmpegArgs.file_info.status == FileTaskStatus.SKIPPED:
+    if ffmpegArgs.file_info.status in [FileTaskStatus.SKIPPED, FileTaskStatus.PASS]:
         return ffmpegArgs.file_info
 
     if ffmpegArgs.file_info.status != FileTaskStatus.WAITING:
@@ -50,8 +50,8 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     input_Args = {}
 
     if (
-        not ffmpegArgs.is_only_audio
-        and ffmpegArgs.encode_option.is_cuda
+        ffmpegArgs.encode_option.is_cuda
+        and not ffmpegArgs.is_only_audio
         and os.path.splitext(ffmpegArgs.file_info.input_filepath)[1] not in [".wmv"]
     ):  # wmv 컨테이너 중, 하드웨어 디코드 오류가 발생하는 문제가 있음
         input_Args["hwaccel"] = "cuda"
@@ -84,10 +84,11 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     def msg_reader(
         logger: logging.Logger,
         queue: queue.Queue,
-        file_info: FileInfo,
+        ffmpegArgs: FFmpegArgs,
         control_queue: queue.Queue,
         msg_storage: List = None,
     ):
+        file_info = ffmpegArgs.file_info
         total_duration = float(ffmpegArgs.probe_info["format"]["duration"])
         bar = tqdm(total=round(total_duration, 2), leave=ffmpegArgs.encode_option.leave, dynamic_ncols=True)
         info = {
@@ -133,7 +134,13 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                             f_value = int(value)
                             p_value = str(bitmath.best_prefix(f_value, system=bitmath.SI)).split(" ")
                             value = f"{round(float(p_value[0]), 1)} {p_value[1]}"
-                            if file_info is not None and control_queue is not None:
+                            if (
+                                ffmpegArgs.encode_option.is_size_skip
+                                and not ffmpegArgs.is_streamcopy
+                                and not ffmpegArgs.is_only_audio
+                                and file_info is not None
+                                and control_queue is not None
+                            ):
                                 if f_value > file_info.input_filesize:
                                     control_queue.put("pass")
                                     logger.info(
@@ -195,7 +202,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                 args=[
                     logger,
                     msg_queue,
-                    ffmpegArgs.file_info,
+                    ffmpegArgs,
                     control_queue,
                     msg_storage,
                 ],
@@ -237,9 +244,9 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     except Exception:
         if ffmpegArgs.file_info.status == FileTaskStatus.SUSPEND:
-            logger.warning("작업이 중단되었습니다.", exc_info=True)
+            logger.warning("작업이 중단되었습니다.")
         elif ffmpegArgs.file_info.status == FileTaskStatus.PASS:
-            logger.warning("작업이 통과되었습니다.", exc_info=True)
+            logger.warning("작업이 통과되었습니다.")
         else:
             ffmpegArgs.file_info.status = FileTaskStatus.ERROR
             logger.error("미디어 처리 중 예외가 발생했습니다.", exc_info=True)

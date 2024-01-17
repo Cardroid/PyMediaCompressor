@@ -85,3 +85,7 @@ optional arguments:
                         로그 출력 모드
   --log-path LOG_PATH   로그 출력 경로
 ```
+
+### TODO
+
+-   [ ] 인코딩 후 스트림 무결성 검사
