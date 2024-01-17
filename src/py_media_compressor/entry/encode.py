@@ -282,7 +282,8 @@ def main():
                 f"작업이 통과되었습니다.\nState: {file_info.status}\nInput Filepath: {file_info.input_filepath}\nOutput Filepath: {file_info.output_filepath}"
             )
             utils.remove(file_info.output_filepath, raise_error=False)
-            streamcopy(fileInfo=file_info)
+            if is_replace:
+                streamcopy(fileInfo=file_info)
         else:
             logger.error(f"상태가 올바르지 않은 작업이 있습니다.\nFileInfo: {file_info}")
 

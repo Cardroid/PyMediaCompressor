@@ -37,7 +37,9 @@ def add_stream_copy_args(ffmpegArgs: FFmpegArgs):
     """FFmpeg 스트림 복사 인수 추가"""
 
     ffmpegArgs["c:v"] = "copy"
-    ffmpegArgs["c:a"] = "copy"
+
+    # ffmpegArgs["c:a"] = "copy"
+    add_audio_args(ffmpegArgs=ffmpegArgs)
 
 
 @_status_changer

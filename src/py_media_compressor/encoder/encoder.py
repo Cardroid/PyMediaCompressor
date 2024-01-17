@@ -1,3 +1,4 @@
+import logging
 import os
 import queue
 from threading import Thread
@@ -80,7 +81,13 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
     stream = ffmpeg.overwrite_output(stream)
 
-    def msg_reader(queue: queue.Queue, file_info: FileInfo, control_queue: queue.Queue, msg_storage: List = None):
+    def msg_reader(
+        logger: logging.Logger,
+        queue: queue.Queue,
+        file_info: FileInfo,
+        control_queue: queue.Queue,
+        msg_storage: List = None,
+    ):
         total_duration = float(ffmpegArgs.probe_info["format"]["duration"])
         bar = tqdm(total=round(total_duration, 2), leave=ffmpegArgs.encode_option.leave, dynamic_ncols=True)
         info = {
@@ -129,6 +136,9 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                             if file_info is not None and control_queue is not None:
                                 if f_value > file_info.input_filesize:
                                     control_queue.put("pass")
+                                    logger.info(
+                                        f"[size_skip] input size > output size. ({f_value} > {file_info.input_filesize})"
+                                    )
                         elif key == "out_time":
                             key = "time"
                             value = value.split(".")[0]
@@ -180,7 +190,16 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
             process = progress.run_ffmpeg_process_with_msg_queue(stream, msg_queue)
             utils.set_low_process_priority(process.pid)
 
-            watch_thread = Thread(target=msg_reader, args=[msg_queue, ffmpegArgs.file_info, control_queue, msg_storage])
+            watch_thread = Thread(
+                target=msg_reader,
+                args=[
+                    logger,
+                    msg_queue,
+                    ffmpegArgs.file_info,
+                    control_queue,
+                    msg_storage,
+                ],
+            )
             watch_thread.start()
 
             code, result = utils.process_control_wait(process, control_queue=control_queue)
