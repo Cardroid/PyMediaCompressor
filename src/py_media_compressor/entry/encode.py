@@ -39,6 +39,7 @@ def main():
         default="numbering",
         help="출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.",
     )
+    parser.add_argument("--no_sort", dest="sort", action="store_false", help="파일크기 오름차순으로 정렬을 하지 않습니다.")
     parser.add_argument(
         "-s", "--save_error_output", dest="save_error_output", action="store_true", help="오류가 발생한 출력물을 제거하지 않습니다."
     )
@@ -166,7 +167,8 @@ def main():
         isSizeSkip=args["size_skip"],
     )
 
-    file_infos.sort(key=lambda fi: fi.input_filesize)
+    if args.get("sort", True):
+        file_infos.sort(key=lambda fi: fi.input_filesize)
 
     ffmpeg_args: model.FFmpegArgs
     for file_info in (file_info_tqdm := tqdm(file_infos, leave=False, dynamic_ncols=True)):

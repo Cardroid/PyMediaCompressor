@@ -143,7 +143,10 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                                 if f_value > file_info.input_filesize:
                                     control_queue.put("pass")
                                     logger.info(
-                                        f"[size_skip] input size > output size. ({f_value} > {file_info.input_filesize})"
+                                        (
+                                            f"[size_skip] input size > output size. "
+                                            f"({f_value} > {file_info.input_filesize})"
+                                        )
                                     )
                         elif key == "out_time":
                             key = "time"
