@@ -49,6 +49,7 @@ usage: encode [-h]
               [-r]
               [-p]
               [-e {overwrite,skip,numbering}]
+              [--no_sort]
               [-s]
               [-f]
               [-c {h.264,h.265}]
@@ -70,6 +71,7 @@ optional arguments:
   -p, --size_skip       빠른 작업을 위해 인코딩 도중 출력파일 크기가 입력파일 크기보다 커지는 순간 즉시 건너뜁니다.
   -e {overwrite,skip,numbering}, --already_exists_mode {overwrite,skip,numbering}
                         출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.
+  --no_sort             파일크기 오름차순으로 정렬을 하지 않습니다.
   -s, --save_error_output
                         오류가 발생한 출력물을 제거하지 않습니다.
   -f, --force           이미 압축된 미디어 파일을 강제로, 재압축합니다.
