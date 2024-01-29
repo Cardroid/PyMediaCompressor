@@ -138,13 +138,15 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                                 ffmpegArgs.encode_option.is_size_skip
                                 and not ffmpegArgs.is_streamcopy
                                 and not ffmpegArgs.is_only_audio
-                                and file_info is not None
                                 and control_queue is not None
                             ):
                                 if f_value > file_info.input_filesize:
                                     control_queue.put("pass")
                                     logger.info(
-                                        f"[size_skip] input size > output size. ({f_value} > {file_info.input_filesize})"
+                                        (
+                                            f"[size_skip] input size > output size. "
+                                            f"({f_value} > {file_info.input_filesize})"
+                                        )
                                     )
                         elif key == "out_time":
                             key = "time"
