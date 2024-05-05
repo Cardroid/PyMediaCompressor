@@ -19,10 +19,16 @@ def main():
 
     parser = argparse.ArgumentParser(description="미디어를 압축 인코딩합니다.")
 
-    parser.add_argument("-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 및 디렉토리 경로")
+    parser.add_argument(
+        "-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 및 디렉토리 경로"
+    )
     parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
     parser.add_argument(
-        "-r", "--replace", dest="replace", action="store_true", help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐 경우, 출력파일이 삭제됩니다."
+        "-r",
+        "--replace",
+        dest="replace",
+        action="store_true",
+        help="원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐 경우, 출력파일이 삭제됩니다.",
     )
     parser.add_argument(
         "-p",
@@ -39,13 +45,26 @@ def main():
         default="numbering",
         help="출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.",
     )
-    parser.add_argument("--no_sort", dest="sort", action="store_false", help="파일크기 오름차순으로 정렬을 하지 않습니다.")
     parser.add_argument(
-        "-s", "--save_error_output", dest="save_error_output", action="store_true", help="오류가 발생한 출력물을 제거하지 않습니다."
+        "--no_sort", dest="sort", action="store_false", help="파일크기 오름차순으로 정렬을 하지 않습니다."
     )
-    parser.add_argument("-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 강제로, 재압축합니다.")
     parser.add_argument(
-        "-c", "--codec", dest="codec", choices=["h.264", "h.265"], default="h.264", help="인코더에 전달되는 비디오 코덱 옵션"
+        "-s",
+        "--save_error_output",
+        dest="save_error_output",
+        action="store_true",
+        help="오류가 발생한 출력물을 제거하지 않습니다.",
+    )
+    parser.add_argument(
+        "-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 강제로, 재압축합니다."
+    )
+    parser.add_argument(
+        "-c",
+        "--codec",
+        dest="codec",
+        choices=["h.264", "h.265"],
+        default="h.264",
+        help="인코더에 전달되는 비디오 코덱 옵션",
     )
     parser.add_argument(
         "--crf",
@@ -55,11 +74,21 @@ def main():
         metavar="{-1~51}",
         help="인코더에 전달되는 crf 값 (-1을 입력하면 코덱에 따라 기본값이 자동으로 계산됩니다.) [h.264 = 23, h.265 = 28]",
     )
-    parser.add_argument("--scan", dest="scan", action="store_true", help="해당 옵션을 사용하면, 입력 파일을 탐색하고, 실제 압축은 하지 않습니다.")
     parser.add_argument(
-        "--height", dest="height", default=1440, help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다. (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)"
+        "--scan",
+        dest="scan",
+        action="store_true",
+        help="해당 옵션을 사용하면, 입력 파일을 탐색하고, 실제 압축은 하지 않습니다.",
     )
-    parser.add_argument("--cuda", dest="cuda", action="store_true", help="CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다.")
+    parser.add_argument(
+        "--height",
+        dest="height",
+        default=1440,
+        help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다. (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)",
+    )
+    parser.add_argument(
+        "--cuda", dest="cuda", action="store_true", help="CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다."
+    )
     parser.add_argument(
         "--log-level",
         dest="log_level",
@@ -105,7 +134,9 @@ def main():
             )
 
         if not info[0]:
-            logger.critical(f"ffmpeg 또는 ffprobe 동작 확인 불가, 해당 프로그램은 ffmpeg 및 ffprobe가 필요합니다.\nInfo: {info_str}")
+            logger.critical(
+                f"ffmpeg 또는 ffprobe 동작 확인 불가, 해당 프로그램은 ffmpeg 및 ffprobe가 필요합니다.\nInfo: {info_str}"
+            )
             return
 
         if logger.isEnabledFor(LogLevel.DEBUG):
@@ -134,7 +165,9 @@ def main():
     elif logger.isEnabledFor(LogLevel.DEBUG):
         logger.debug(f"입력 소스파일: \n{pformat(file_infos)}")
 
-    logger.info(f"감지된 소스파일 수: {dupl_file_count + file_count}, 입력 소스파일 수: {file_count}, 중복 소스파일 수: {dupl_file_count}")
+    logger.info(
+        f"감지된 소스파일 수: {dupl_file_count + file_count}, 입력 소스파일 수: {file_count}, 중복 소스파일 수: {dupl_file_count}"
+    )
 
     if args["scan"]:
         return
@@ -182,13 +215,18 @@ def main():
         try:
             ffmpeg_args = model.FFmpegArgs(fileInfo=file_info, encodeOption=encode_option.clone())
         except Exception:
-            logger.error(f"파일 정보를 불러오는 도중 오류가 발생했습니다. Skipped.\nFileInfo: {pformat(file_info)}", exc_info=True)
+            logger.error(
+                f"파일 정보를 불러오는 도중 오류가 발생했습니다. Skipped.\nFileInfo: {pformat(file_info)}",
+                exc_info=True,
+            )
             continue
 
         try:
             ext = ffmpeg_args.expected_ext
         except Exception:
-            logger.error(f"출력 파일 확장자를 추정할 수 없습니다. Skipped.\nFFmpegArgs: {pformat(ffmpeg_args)}", exc_info=True)
+            logger.error(
+                f"출력 파일 확장자를 추정할 수 없습니다. Skipped.\nFFmpegArgs: {pformat(ffmpeg_args)}", exc_info=True
+            )
             continue
 
         ffmpeg_args.file_info.output_filepath = os.path.join(
@@ -266,7 +304,9 @@ def main():
                         ):
                             replace_input_output(fileInfo=file_info)
                         else:
-                            logger.warning(f"덮어쓰기 조건을 만족하지 못합니다. 출력파일을 삭제합니다.\nFileInfo: {file_info}")
+                            logger.warning(
+                                f"덮어쓰기 조건을 만족하지 못합니다. 출력파일을 삭제합니다.\nFileInfo: {file_info}"
+                            )
                             utils.remove(file_info.output_filepath)
 
                             streamcopy(fileInfo=file_info)

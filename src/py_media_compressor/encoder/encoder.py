@@ -320,7 +320,9 @@ def get_source_file(
     source_infos = []
 
     input_iter = (
-        tqdm(inputPaths, desc="입력 경로에서 파일 검색 중...", leave=leave, dynamic_ncols=True) if useProgressbar else inputPaths
+        tqdm(inputPaths, desc="입력 경로에서 파일 검색 중...", leave=leave, dynamic_ncols=True)
+        if useProgressbar
+        else inputPaths
     )
     for input_filepath in input_iter:
         if useProgressbar:
