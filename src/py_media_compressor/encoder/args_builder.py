@@ -36,10 +36,22 @@ def add_auto_args(ffmpegArgs: FFmpegArgs):
 def add_stream_copy_args(ffmpegArgs: FFmpegArgs):
     """FFmpeg 스트림 복사 인수 추가"""
 
-    ffmpegArgs["c:v"] = "copy"
+    if not ffmpegArgs.is_only_audio:
+        ffmpegArgs["c:v"] = "copy"
 
     # ffmpegArgs["c:a"] = "copy"
     add_audio_args(ffmpegArgs=ffmpegArgs)
+
+
+@_status_changer
+def pass_filter(ffmpegArgs: FFmpegArgs):
+    """인코딩 Pass 여부 판단 필터"""
+
+    codec_name: str = ffmpegArgs.video_stream["codec_name"].lower()
+    if codec_name.startswith("wmv"):
+        return False
+
+    return True
 
 
 @_status_changer
