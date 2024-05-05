@@ -11,7 +11,7 @@ from tqdm import tqdm
 from py_media_compressor import log, utils
 from py_media_compressor.common import progress
 from py_media_compressor.const import IGNORE_STREAM_FILTER
-from py_media_compressor.encoder.args_builder import add_auto_args
+from py_media_compressor.encoder import args_builder
 from py_media_compressor.model import FFmpegArgs, FileInfo
 from py_media_compressor.model.enum import FileTaskStatus, LogDestination, LogLevel
 from py_media_compressor.utils import pformat
@@ -30,7 +30,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     logger = log.get_logger(media_compress_encode)
 
     if ffmpegArgs.file_info.status == FileTaskStatus.INIT:
-        add_auto_args(ffmpegArgs=ffmpegArgs)
+        args_builder.add_auto_args(ffmpegArgs=ffmpegArgs)
         logger.debug("ffmpeg 인수 자동 생성 완료")
 
     if logger.isEnabledFor(LogLevel.INFO):
@@ -52,10 +52,14 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     if (
         ffmpegArgs.encode_option.is_cuda
         and not ffmpegArgs.is_only_audio
-        and os.path.splitext(ffmpegArgs.file_info.input_filepath)[1] not in [".wmv"]
-    ):  # wmv 컨테이너 중, 하드웨어 디코드 오류가 발생하는 문제가 있음
+        and ffmpegArgs.video_stream["codec_name"].lower().startswith("wmv")
+    ):  # wmv 코덱 중, 하드웨어 디코드 오류가 발생하는 문제가 있음
         input_Args["hwaccel"] = "cuda"
         logger.info("CUDA 디코더 활성화")
+
+    skip_offset_size = 10485760  # 10 * 1024 * 1024 (10MB)
+
+    is_can_skip = args_builder.pass_filter(ffmpegArgs=ffmpegArgs)
 
     stream = ffmpeg.input(ffmpegArgs.file_info.input_filepath, **input_Args)
 
@@ -135,12 +139,13 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
                             p_value = str(bitmath.best_prefix(f_value, system=bitmath.SI)).split(" ")
                             value = f"{round(float(p_value[0]), 1)} {p_value[1]}"
                             if (
-                                ffmpegArgs.encode_option.is_size_skip
+                                is_can_skip
+                                and ffmpegArgs.encode_option.is_size_skip
                                 and not ffmpegArgs.is_streamcopy
                                 and not ffmpegArgs.is_only_audio
                                 and control_queue is not None
                             ):
-                                if f_value > file_info.input_filesize:
+                                if f_value > file_info.input_filesize + skip_offset_size:
                                     control_queue.put("pass")
                                     logger.info(
                                         (
