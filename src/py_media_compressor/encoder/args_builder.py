@@ -47,6 +47,9 @@ def add_stream_copy_args(ffmpegArgs: FFmpegArgs):
 def pass_filter(ffmpegArgs: FFmpegArgs):
     """인코딩 Pass 여부 판단 필터"""
 
+    if ffmpegArgs.is_only_audio:
+        return False
+
     codec_name: str = ffmpegArgs.video_stream["codec_name"].lower()
     if codec_name.startswith("wmv"):
         return False
