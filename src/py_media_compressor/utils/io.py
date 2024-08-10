@@ -23,15 +23,28 @@ def get_media_files(path: str, useRealpath=False, mediaExtFilter: List[str] = No
     if useRealpath:
         path = os.path.realpath(path)
 
+    def check_symlink(path: str) -> bool:
+        if os.name == "posix":
+            return os.path.islink(path)
+        else:
+            return False
+
+    if check_symlink(path):
+        return []
+
     if os.path.isfile(path):
         return [path]
     elif os.path.isdir(path):
         path = os.path.join(escape(path), "**")
 
         if mediaExtFilter is not None:
-            ext_filter = lambda p: os.path.isfile(p) and os.path.splitext(p)[1].lower() in mediaExtFilter
+            ext_filter = (
+                lambda p: os.path.isfile(p)
+                and os.path.splitext(p)[1].lower() in mediaExtFilter
+                and not check_symlink(p)
+            )
         else:
-            ext_filter = lambda p: os.path.isfile(p)
+            ext_filter = lambda p: os.path.isfile(p) and not check_symlink(p)
 
         return list(filter(ext_filter, glob(path, recursive=True)))
     else:
