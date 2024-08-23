@@ -3,7 +3,7 @@ PROCESSER_NAME = "Automatic media compression processed"
 PROCESSER_TAG_END = "AMCP_END"
 
 
-IGNORE_STREAM_FILTER = ["png", "mjpeg"]
+IGNORE_STREAM_FILTER = ["png", "mjpeg", "bmp"]
 
 
 # 사용자 지정 파일확장자 필터
