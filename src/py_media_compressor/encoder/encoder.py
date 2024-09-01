@@ -52,7 +52,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
     if (
         ffmpegArgs.encode_option.is_cuda
         and not ffmpegArgs.is_only_audio
-        and ffmpegArgs.video_stream["codec_name"].lower().startswith("wmv")
+        and not ffmpegArgs.video_stream["codec_name"].lower().startswith("wmv")
     ):  # wmv 코덱 중, 하드웨어 디코드 오류가 발생하는 문제가 있음
         input_Args["hwaccel"] = "cuda"
         logger.info("CUDA 디코더 활성화")
