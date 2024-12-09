@@ -39,6 +39,10 @@ class FFmpegArgs(DictDataExtendBase):
             elif stream["codec_type"] == "audio":
                 self._audio_streams.append(stream)
 
+        # self["-profile:v"] = "none"
+        # self["-tune:v"] = "none"
+        # self["-level:v"] = "auto"
+
     def _as_dict(self) -> Dict[str, Any]:
         result = super()._as_dict()
         result["filename"] = self.file_info.output_filepath

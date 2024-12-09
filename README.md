@@ -5,7 +5,7 @@
 ### 설명
 
 FFmpeg를 사용하여 미디어를 인코딩합니다.  
-preset을 veryslow로 설정하여 CPU 사용량이 매우 높지만, 높은 압축률로 미디어를 인코딩할 수 있습니다.  
+느리지만 압축률이 높은 preset을 설정하여 CPU 사용량이 매우 높지만, 높은 압축률로 미디어를 인코딩할 수 있습니다.  
 해당 프로젝트는 FFmpeg를 잘 알지 못해도 사용할 수 있도록 개발되었습니다.
 
 > ubuntu 20.04 서버, windows 11 에서 테스트 되었습니다.
@@ -49,7 +49,7 @@ usage: encode [-h]
               [-r]
               [-p]
               [-e {overwrite,skip,numbering}]
-              [--no_sort]
+              [--sort_mode]
               [-s]
               [-f]
               [-c {h.264,h.265}]
@@ -71,7 +71,7 @@ optional arguments:
   -p, --size_skip       빠른 작업을 위해 인코딩 도중 출력파일 크기가 입력파일 크기보다 커지는 순간 즉시 건너뜁니다.
   -e {overwrite,skip,numbering}, --already_exists_mode {overwrite,skip,numbering}
                         출력 폴더에 같은 이름의 파일이 있을 경우, 사용할 모드.
-  --no_sort             파일크기 오름차순으로 정렬을 하지 않습니다.
+  --sort_mode           파일 사이즈 정렬 옵션 (on = 내림차순, reverse = 오름차순)
   -s, --save_error_output
                         오류가 발생한 출력물을 제거하지 않습니다.
   -f, --force           이미 압축된 미디어 파일을 강제로, 재압축합니다.
