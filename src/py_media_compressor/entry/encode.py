@@ -49,7 +49,7 @@ def main():
     #     "--no_sort", dest="sort", action="store_false", help="파일크기 오름차순으로 정렬을 하지 않습니다."
     # )
     parser.add_argument(
-        "--sort-mode",
+        "--sort_mode",
         dest="sort_mode",
         choices=["on", "reverse", "off"],
         default="on",
