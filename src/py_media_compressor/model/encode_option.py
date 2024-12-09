@@ -45,9 +45,9 @@ class EncodeOption(DictDataBase):
 
         if crf < 0:
             if codec == "h.264":
-                crf = 19
+                crf = 23
             elif codec == "h.265":
-                crf = 21
+                crf = 28
 
         self._data = {
             "max_height": maxHeight,
