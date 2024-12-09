@@ -90,7 +90,7 @@ def add_video_args(ffmpegArgs: FFmpegArgs):
         elif compression_mode == "h.265":
             ffmpegArgs["c:v"] = "libx265"
         ffmpegArgs["crf"] = ffmpegArgs.encode_option.crf
-        ffmpegArgs["preset"] = "veryslow"
+        ffmpegArgs["preset"] = "slower"
 
         # 세로 또는 가로 픽셀 수가 짝수가 아닐 경우 발생하는 오류 처리 포함
         if (width := ffmpegArgs.video_stream.get("width")) is None:
