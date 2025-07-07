@@ -194,10 +194,11 @@ def add_metadata_args(ffmpegArgs: FFmpegArgs):
             key, value = line.split("=")
             metadatas[key.strip().lower()] = value.strip()
     else:
-        metadatas["amcp_ver"] = version.metadata_version
         metadatas["amcp_input_filesize"] = ffmpegArgs.file_info.input_filesize
         metadatas["amcp_input_file_MD5"] = ffmpegArgs.file_info.input_file_MD5
-        metadatas["amcp_encoded_date"] = int(time())
+
+    metadatas["amcp_encoded_date"] = int(time())
+    metadatas["amcp_ver"] = version.metadata_version
 
     if len(metadatas) > 0:
         c_metadata = []
