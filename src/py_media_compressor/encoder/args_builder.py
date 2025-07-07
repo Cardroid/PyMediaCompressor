@@ -225,6 +225,8 @@ def add_metadata_args(ffmpegArgs: FFmpegArgs):
         logger.info(f"이미 처리된 미디어입니다.\nFileInfo: {ffmpegArgs.file_info}")
         if ffmpegArgs.encode_option.is_force:
             logger.warning("강제로 재인코딩을 실시합니다... (is_force)")
+        elif ffmpegArgs.encode_option.max_height > 0 and ffmpegArgs.video_stream.get("height", 0) != ffmpegArgs.encode_option.max_height:
+            logger.warning("화면 크기가 다르므로 재인코딩을 실시합니다...")
         else:
             ffmpegArgs.file_info.status = FileTaskStatus.SKIPPED
 
