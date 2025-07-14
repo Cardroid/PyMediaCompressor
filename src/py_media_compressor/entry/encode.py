@@ -20,7 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description="미디어를 압축 인코딩합니다.")
 
     parser.add_argument(
-        "-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 및 디렉토리 경로"
+        "-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 및 디렉토리 경로 또는, .list 파일(파일의 경로 모음, 줄바꿈으로 구분) 경로"
     )
     parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
     parser.add_argument(
