@@ -1,4 +1,5 @@
 from importlib.machinery import SourceFileLoader
+
 import setuptools
 
 version = SourceFileLoader("py_media_compressor.version", "src/py_media_compressor/version.py").load_module().version

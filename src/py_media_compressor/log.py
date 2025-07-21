@@ -20,9 +20,7 @@ def unhandled_exception_hook(exc_type, exc_value, exc_traceback):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
 
-    get_logger(unhandled_exception_hook).critical(
-        "처리되지 않은 예외가 발생했습니다.", exc_info=(exc_type, exc_value, exc_traceback)
-    )
+    get_logger(unhandled_exception_hook).critical("처리되지 않은 예외가 발생했습니다.", exc_info=(exc_type, exc_value, exc_traceback))
 
 
 sys.excepthook = unhandled_exception_hook

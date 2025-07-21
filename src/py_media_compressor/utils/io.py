@@ -5,6 +5,7 @@ import shutil
 from glob import escape, glob
 from typing import Dict, List
 
+import tqdm
 import yaml
 
 
@@ -34,9 +35,7 @@ def get_media_files(path: str, useRealpath=False, mediaExtFilter: List[str] = No
 
     if mediaExtFilter is not None:
         ext_filter = (
-            lambda p: os.path.isfile(p)
-            and os.path.splitext(p)[1].lower() in mediaExtFilter
-            and not check_symlink(p)
+            lambda p: os.path.isfile(p) and os.path.splitext(p)[1].lower() in mediaExtFilter and not check_symlink(p)
         )
     else:
         ext_filter = lambda p: os.path.isfile(p) and not check_symlink(p)
@@ -106,9 +105,7 @@ def overwrite_small_file(originFilepath: str, destinationFilepath: str, orginFil
         bool: 목적 위치의 파일이 덮어써진 경우 True, 아닐 경우 False를 반환합니다.
     """
 
-    assert os.path.isfile(originFilepath) and os.path.isfile(
-        destinationFilepath
-    ), "원본 또는 목적 파일이 존재하지 않습니다."
+    assert os.path.isfile(originFilepath) and os.path.isfile(destinationFilepath), "원본 또는 목적 파일이 존재하지 않습니다."
 
     orig_file_size = os.path.getsize(originFilepath)
     dest_file_size = os.path.getsize(destinationFilepath)
