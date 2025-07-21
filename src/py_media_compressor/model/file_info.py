@@ -68,7 +68,7 @@ class FileInfo(DictDataBase):
         if (
             utils.is_str_empty_or_space(md5) or self.__input_file_MD5_size == self.input_filesize
         ):  # 값의 신뢰도를 위해 이전 파일 크기와 현재 파일 크기가 같은지도 확인
-            md5 = utils.get_MD5_hash(self.input_filepath)
+            md5 = utils.get_MD5_hash(self.input_filepath, useProgressbar=True)
             self.__input_file_MD5_size = self.input_filesize
             self._set_value(md5)
 
@@ -81,7 +81,7 @@ class FileInfo(DictDataBase):
         if (
             utils.is_str_empty_or_space(md5) or self.__output_file_MD5_size == self.output_filesize
         ):  # 값의 신뢰도를 위해 이전 파일 크기와 현재 파일 크기가 같은지도 확인
-            md5 = utils.get_MD5_hash(self.output_filepath)
+            md5 = utils.get_MD5_hash(self.output_filepath, useProgressbar=True)
             self.__output_file_MD5_size = self.output_filesize
             self._set_value(md5)
 

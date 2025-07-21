@@ -300,10 +300,10 @@ def get_source_file(
                 if isinstance(tqdm_manager, tqdm):
                     tqdm_manager.set_description("[DupCheck] MD5 해시 계산 중...")
 
-                fileinfo["input_md5_hash"] = utils.get_MD5_hash(fileinfo["input_file"])
+                fileinfo["input_md5_hash"] = utils.get_MD5_hash(fileinfo["input_file"], useProgressbar=True)
 
                 if "input_md5_hash" not in o_fileinfo:
-                    o_fileinfo["input_md5_hash"] = utils.get_MD5_hash(o_fileinfo["input_file"])
+                    o_fileinfo["input_md5_hash"] = utils.get_MD5_hash(o_fileinfo["input_file"], useProgressbar=True)
 
                 if fileinfo["input_md5_hash"] == o_fileinfo["input_md5_hash"]:  # MD5 해시가 겹치는 경우 (3차 필터링)
                     is_dupl = True
