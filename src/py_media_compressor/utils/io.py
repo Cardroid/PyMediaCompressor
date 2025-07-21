@@ -5,6 +5,7 @@ import shutil
 from glob import escape, glob
 from typing import Dict, List
 
+import tqdm
 import yaml
 
 
@@ -34,9 +35,7 @@ def get_media_files(path: str, useRealpath=False, mediaExtFilter: List[str] = No
 
     if mediaExtFilter is not None:
         ext_filter = (
-            lambda p: os.path.isfile(p)
-            and os.path.splitext(p)[1].lower() in mediaExtFilter
-            and not check_symlink(p)
+            lambda p: os.path.isfile(p) and os.path.splitext(p)[1].lower() in mediaExtFilter and not check_symlink(p)
         )
     else:
         ext_filter = lambda p: os.path.isfile(p) and not check_symlink(p)
@@ -56,12 +55,13 @@ def get_media_files(path: str, useRealpath=False, mediaExtFilter: List[str] = No
         return []
 
 
-def get_MD5_hash(filepath: str, blockSize: int = 65536) -> str:
+def get_MD5_hash(filepath: str, blockSize: int = 65536, useProgressbar: bool = False) -> str:
     """파일의 MD5 해시값을 구합니다.
 
     Args:
         filepath (str): 파일 경로
-        blockSize (int, optional): 한 번에 읽어올 파일의 블록 크기
+        blockSize (int, optional): 한 번에 읽어올 파일의 블록 크기. Defaults to 65536 (64KB).
+        useProgressbar (bool, optional): 진행바 사용 여부. Defaults to False.
 
     Returns:
         str: MD5 해시값
@@ -71,10 +71,26 @@ def get_MD5_hash(filepath: str, blockSize: int = 65536) -> str:
 
     hasher = hashlib.md5()
 
-    with open(filepath, "rb") as f:
-        for byte_block in iter(lambda: f.read(blockSize), b""):
-            hasher.update(byte_block)
-        return hasher.hexdigest()
+    if useProgressbar:
+        file_size = os.path.getsize(filepath)
+        total_blocks = (file_size + blockSize - 1) // blockSize
+
+        with open(filepath, "rb") as f:
+            for byte_block in tqdm.tqdm(
+                iter(lambda: f.read(blockSize), b""),
+                total=total_blocks,
+                unit="KB",
+                unit_scale=blockSize / 1024,
+                desc=f"Calculating MD5 Hash...: {os.path.basename(filepath)}",
+                leave=False,
+            ):
+                hasher.update(byte_block)
+    else:
+        with open(filepath, "rb") as f:
+            for byte_block in iter(lambda: f.read(blockSize), b""):
+                hasher.update(byte_block)
+
+    return hasher.hexdigest()
 
 
 def overwrite_small_file(originFilepath: str, destinationFilepath: str, orginFileRemove=True) -> bool:
@@ -89,9 +105,7 @@ def overwrite_small_file(originFilepath: str, destinationFilepath: str, orginFil
         bool: 목적 위치의 파일이 덮어써진 경우 True, 아닐 경우 False를 반환합니다.
     """
 
-    assert os.path.isfile(originFilepath) and os.path.isfile(
-        destinationFilepath
-    ), "원본 또는 목적 파일이 존재하지 않습니다."
+    assert os.path.isfile(originFilepath) and os.path.isfile(destinationFilepath), "원본 또는 목적 파일이 존재하지 않습니다."
 
     orig_file_size = os.path.getsize(originFilepath)
     dest_file_size = os.path.getsize(destinationFilepath)

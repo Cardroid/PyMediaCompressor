@@ -20,7 +20,11 @@ def main():
     parser = argparse.ArgumentParser(description="미디어를 압축 인코딩합니다.")
 
     parser.add_argument(
-        "-i", dest="input", action="append", required=True, help="하나 이상의 입력 소스 파일 및 디렉토리 경로 또는, .list 파일(파일의 경로 모음, 줄바꿈으로 구분) 경로"
+        "-i",
+        dest="input",
+        action="append",
+        required=True,
+        help="하나 이상의 입력 소스 파일 및 디렉토리 경로 또는, .list 파일(파일의 경로 모음, 줄바꿈으로 구분) 경로",
     )
     parser.add_argument("-o", dest="output", default="out", help="출력 디렉토리 경로")
     parser.add_argument(
@@ -62,9 +66,7 @@ def main():
         action="store_true",
         help="오류가 발생한 출력물을 제거하지 않습니다.",
     )
-    parser.add_argument(
-        "-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 강제로, 재압축합니다."
-    )
+    parser.add_argument("-f", "--force", dest="force", action="store_true", help="이미 압축된 미디어 파일을 강제로, 재압축합니다.")
     parser.add_argument(
         "-c",
         "--codec",
@@ -93,9 +95,7 @@ def main():
         default=1440,
         help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다. (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)",
     )
-    parser.add_argument(
-        "--cuda", dest="cuda", action="store_true", help="CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다."
-    )
+    parser.add_argument("--cuda", dest="cuda", action="store_true", help="CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다.")
     parser.add_argument(
         "--log-level",
         dest="log_level",
@@ -141,9 +141,7 @@ def main():
             )
 
         if not info[0]:
-            logger.critical(
-                f"ffmpeg 또는 ffprobe 동작 확인 불가, 해당 프로그램은 ffmpeg 및 ffprobe가 필요합니다.\nInfo: {info_str}"
-            )
+            logger.critical(f"ffmpeg 또는 ffprobe 동작 확인 불가, 해당 프로그램은 ffmpeg 및 ffprobe가 필요합니다.\nInfo: {info_str}")
             return
 
         if logger.isEnabledFor(LogLevel.DEBUG):
@@ -172,9 +170,7 @@ def main():
     elif logger.isEnabledFor(LogLevel.DEBUG):
         logger.debug(f"입력 소스파일: \n{pformat(file_infos)}")
 
-    logger.info(
-        f"감지된 소스파일 수: {dupl_file_count + file_count}, 입력 소스파일 수: {file_count}, 중복 소스파일 수: {dupl_file_count}"
-    )
+    logger.info(f"감지된 소스파일 수: {dupl_file_count + file_count}, 입력 소스파일 수: {file_count}, 중복 소스파일 수: {dupl_file_count}")
 
     if args["scan"]:
         return
@@ -234,9 +230,7 @@ def main():
         try:
             ext = ffmpeg_args.expected_ext
         except Exception:
-            logger.error(
-                f"출력 파일 확장자를 추정할 수 없습니다. Skipped.\nFFmpegArgs: {pformat(ffmpeg_args)}", exc_info=True
-            )
+            logger.error(f"출력 파일 확장자를 추정할 수 없습니다. Skipped.\nFFmpegArgs: {pformat(ffmpeg_args)}", exc_info=True)
             continue
 
         ffmpeg_args.file_info.output_filepath = os.path.join(
@@ -314,9 +308,7 @@ def main():
                         ):
                             replace_input_output(fileInfo=file_info)
                         else:
-                            logger.warning(
-                                f"덮어쓰기 조건을 만족하지 못합니다. 출력파일을 삭제합니다.\nFileInfo: {file_info}"
-                            )
+                            logger.warning(f"덮어쓰기 조건을 만족하지 못합니다. 출력파일을 삭제합니다.\nFileInfo: {file_info}")
                             utils.remove(file_info.output_filepath)
 
                             streamcopy(fileInfo=file_info)
