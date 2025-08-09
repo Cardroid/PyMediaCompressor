@@ -226,7 +226,8 @@ def add_metadata_args(ffmpegArgs: FFmpegArgs):
         if ffmpegArgs.encode_option.is_force:
             logger.warning("강제로 재인코딩을 실시합니다... (is_force)")
         elif (
-            not ffmpegArgs.is_only_audio
+            ffmpegArgs.encode_option.is_force_res
+            and not ffmpegArgs.is_only_audio
             and ffmpegArgs.encode_option.max_height > 0
             and ffmpegArgs.video_stream.get("height", ffmpegArgs.encode_option.max_height)
             > ffmpegArgs.encode_option.max_height
