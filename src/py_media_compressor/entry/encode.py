@@ -95,16 +95,22 @@ def main():
         default=1440,
         help="출력 비디오 스트림의 최대 세로 픽셀 수를 설정합니다. (가로 픽셀 수는 비율에 맞게 자동으로 계산됨)",
     )
+    parser.add_argument(
+        "--res_force",
+        dest="res_force",
+        default=False,
+        help="이미 처리된 파일도 해상도가 더 크다면 강제로 재인코딩합니다. (기본값: False, 해상도가 더 작거나 같은 경우에는 재인코딩하지 않음)",
+    )
     parser.add_argument("--cuda", dest="cuda", action="store_true", help="CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다.")
     parser.add_argument(
-        "--log-level",
+        "--log_level",
         dest="log_level",
         choices=[ll.name.lower() for ll in LogLevel if ll.name != "DEFAULT"],
         default="info",
         help="로그 레벨 설정",
     )
     parser.add_argument(
-        "--log-mode",
+        "--log_mode",
         dest="log_mode",
         choices=["c", "f", "cf", "console", "file", "consolefile"],
         default="consolefile",
@@ -193,6 +199,7 @@ def main():
     encode_option = model.EncodeOption(
         maxHeight=max_height,
         isForce=args["force"],
+        isForceRes=args["res_force"],
         codec=args["codec"],
         crf=args["crf"],
         removeErrorOutput=not is_save_error_output,

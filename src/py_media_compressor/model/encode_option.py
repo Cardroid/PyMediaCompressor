@@ -6,6 +6,7 @@ class EncodeOption(DictDataBase):
         self,
         maxHeight: int = 1440,
         isForce: bool = False,
+        isForceRes: bool = False,
         codec: str = "h.264",
         crf: int = -1,
         removeErrorOutput: bool = True,
@@ -20,6 +21,7 @@ class EncodeOption(DictDataBase):
         Args:
             maxHeight (int, optional): 미디어의 최대 세로 픽셀. Defaults to 1440.
             isForce (bool, optional): 이미 처리된 미디어 파일을 강제적으로 재처리합니다. Defaults to False.
+            isForceRes (bool, optional): 이미 처리된 파일도 해상도가 더 크다면 강제로 재인코딩합니다. (기본값: False, 해상도가 더 작거나 같은 경우에는 재인코딩하지 않음)
             codec (str, optional): 압축 모드. Defaults to "h.264".
             crf (int, optional): 압축 crf 값. Defaults to -1.
             removeErrorOutput (bool, optional): 정상적으로 압축하지 못했을 경우 출력 파일을 삭제합니다. Defaults to True.
@@ -32,6 +34,7 @@ class EncodeOption(DictDataBase):
 
         assert isinstance(maxHeight, int)
         assert isinstance(isForce, bool)
+        assert isinstance(isForceRes, bool)
         assert codec in ["h.264", "h.265"]
         assert isinstance(crf, int)
         assert isinstance(removeErrorOutput, bool)
@@ -52,6 +55,7 @@ class EncodeOption(DictDataBase):
         self._data = {
             "max_height": maxHeight,
             "is_force": isForce,
+            "is_force_res": isForceRes,
             "codec": codec,
             "crf": crf,
             "remove_error_output": removeErrorOutput,
@@ -73,6 +77,10 @@ class EncodeOption(DictDataBase):
 
     @property
     def is_force(self) -> bool:
+        return self._get_value()
+
+    @property
+    def is_force_res(self) -> bool:
         return self._get_value()
 
     @property
