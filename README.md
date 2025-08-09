@@ -66,7 +66,7 @@ usage: encode [-h]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -i INPUT              하나 이상의 입력 소스 파일 및 디렉토리 경로
+  -i INPUT              하나 이상의 입력 소스 파일 및 디렉토리 경로 또는, .list 파일(파일의 경로 모음, 줄바꿈으로 구분) 경로
   -o OUTPUT             출력 디렉토리 경로
   -r, --replace         원본 파일보다 작을 경우, 원본 파일을 덮어씁니다. 아닐 경우, 출력파일이 삭제됩니다.
   -p, --size_skip       빠른 작업을 위해 인코딩 도중 출력파일 크기가 입력파일 크기보다 커지는 순간 즉시 건너뜁니다.
@@ -93,3 +93,4 @@ optional arguments:
 ### TODO
 
 - [ ] 인코딩 후 스트림 무결성 검사
+
