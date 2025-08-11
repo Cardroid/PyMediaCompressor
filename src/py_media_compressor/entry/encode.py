@@ -98,7 +98,7 @@ def main():
     parser.add_argument(
         "--res_force",
         dest="res_force",
-        default=False,
+        action="store_true",
         help="이미 처리된 파일도 해상도가 더 크다면 강제로 재인코딩합니다. (기본값: False, 해상도가 더 작거나 같은 경우에는 재인코딩하지 않음)",
     )
     parser.add_argument("--cuda", dest="cuda", action="store_true", help="CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다.")
