@@ -101,6 +101,12 @@ def main():
         action="store_true",
         help="이미 처리된 파일도 해상도가 더 크다면 강제로 재인코딩합니다. (기본값: False, 해상도가 더 작거나 같은 경우에는 재인코딩하지 않음)",
     )
+    parser.add_argument(
+        "--no_dedup",
+        dest="no_dedup",
+        action="store_true",
+        help="중복 파일 필터링을 사용하지 않습니다.",
+    )
     parser.add_argument("--cuda", dest="cuda", action="store_true", help="CUDA 그래픽카드를 사용하여 소스 파일을 디코드합니다.")
     parser.add_argument(
         "--log_level",
@@ -165,9 +171,14 @@ def main():
 
     logger.info("파일 확장자 필터 로드 완료")
 
+    no_use_deduplication_filter = args["no_dedup"]
+
     # 입력 소스 파일 추출 및 중복 제거
     source_infos, file_count, dupl_file_count = encoder.get_source_file(
-        args["input"], ext_filter.get("exts"), useProgressbar=True
+        args["input"],
+        ext_filter.get("exts"),
+        useDeduplicationFilter=not no_use_deduplication_filter,
+        useProgressbar=True,
     )
     file_infos = encoder.convert_SI2FI(source_infos)
 
