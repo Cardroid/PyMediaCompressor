@@ -30,6 +30,7 @@ def add_auto_args(ffmpegArgs: FFmpegArgs):
     add_video_args(ffmpegArgs=ffmpegArgs)
     add_audio_args(ffmpegArgs=ffmpegArgs)
     add_metadata_args(ffmpegArgs=ffmpegArgs)
+    add_user_args(ffmpegArgs=ffmpegArgs)
 
 
 @_status_changer
@@ -238,3 +239,40 @@ def add_metadata_args(ffmpegArgs: FFmpegArgs):
 
     if logger.isEnabledFor(LogLevel.DEBUG):
         logger.debug(f"메타데이터 인수 추가\nArgs: {ffmpegArgs}\nMetadatas: {utils.pformat(metadatas)}")
+
+
+@_status_changer
+def add_user_args(ffmpegArgs: FFmpegArgs):
+    """사용자 지정 인수 추가"""
+
+    logger = log.get_logger(add_user_args)
+
+    # 사용자 지정 인수 로드
+    user_args_config_filepath = os.path.join("config", "user_args.yaml")
+    if os.path.isfile(user_args_config_filepath):
+        user_args = utils.load_config(user_args_config_filepath)
+    else:
+        user_args = {"copy": {}, "not_copy": {}}
+        utils.save_config(user_args, user_args_config_filepath)
+
+    copy_user_args = user_args.get("copy")
+    not_copy_user_args = user_args.get("not_copy")
+
+    if copy_user_args is None:
+        copy_user_args = {}
+    if not_copy_user_args is None:
+        not_copy_user_args = {}
+
+    assert isinstance(copy_user_args, dict) and isinstance(
+        not_copy_user_args, dict
+    ), f"사용자 지정 인수에 문제가 있습니다. \nArgs: {utils.pformat(user_args)}"
+
+    if ffmpegArgs.is_streamcopy:
+        for karg, varg in copy_user_args.items():
+            ffmpegArgs[karg] = varg
+    else:
+        for karg, varg in not_copy_user_args.items():
+            ffmpegArgs[karg] = varg
+
+    if logger.isEnabledFor(LogLevel.DEBUG):
+        logger.debug(f"사용자 지정 인수 추가\nUserArgs: {utils.pformat(user_args)}")

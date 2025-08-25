@@ -307,6 +307,7 @@ def main():
             ffmpeg_args = model.FFmpegArgs(fileInfo=fileInfo, encodeOption=encode_option.clone())
             args_builder.add_stream_copy_args(ffmpegArgs=ffmpeg_args)
             args_builder.add_metadata_args(ffmpegArgs=ffmpeg_args)
+            args_builder.add_user_args(ffmpegArgs=ffmpeg_args)
             fileInfo = encoder.media_compress_encode(ffmpegArgs=ffmpeg_args)
             replace_input_output(fileInfo=fileInfo)
             fileInfo.output_filepath = fileInfo.input_filepath
