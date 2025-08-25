@@ -74,8 +74,7 @@ def add_format_args(ffmpegArgs: FFmpegArgs):
     ffmpegArgs["filename"] = f"{os.path.splitext(ffmpegArgs.file_info.output_filepath)[0]}{ext}"
     ffmpegArgs["format"] = format
 
-    if logger.isEnabledFor(LogLevel.DEBUG):
-        logger.debug(f"포멧 인수 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
+    logger.debug(f"포멧 인수 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
 
 
 @_status_changer
@@ -119,8 +118,7 @@ def add_video_args(ffmpegArgs: FFmpegArgs):
 
             ffmpegArgs["vf"] = f"scale={width}:{height}"
 
-    if logger.isEnabledFor(LogLevel.DEBUG):
-        logger.debug(f"비디오 인수 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
+    logger.debug(f"비디오 인수 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
 
 
 @_status_changer
@@ -148,8 +146,7 @@ def add_audio_args(ffmpegArgs: FFmpegArgs):
             ffmpegArgs["cutoff"] = 20000
             ffmpegArgs[f"b:a:{idx}"] = 320_000 if bit_rate is None or int(bit_rate) > 320_000 else int(bit_rate)
 
-    if logger.isEnabledFor(LogLevel.DEBUG):
-        logger.debug(f"오디오 인수 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
+    logger.debug(f"오디오 인수 추가\nArgs: {ffmpegArgs}\nFileInfo: {ffmpegArgs.file_info}")
 
 
 @_status_changer
@@ -237,8 +234,7 @@ def add_metadata_args(ffmpegArgs: FFmpegArgs):
         else:
             ffmpegArgs.file_info.status = FileTaskStatus.SKIPPED
 
-    if logger.isEnabledFor(LogLevel.DEBUG):
-        logger.debug(f"메타데이터 인수 추가\nArgs: {ffmpegArgs}\nMetadatas: {utils.pformat(metadatas)}")
+    logger.debug(f"메타데이터 인수 추가\nArgs: {ffmpegArgs}\nMetadatas: {utils.pformat(metadatas)}")
 
 
 @_status_changer
@@ -274,5 +270,4 @@ def add_user_args(ffmpegArgs: FFmpegArgs):
         for karg, varg in not_copy_user_args.items():
             ffmpegArgs[karg] = varg
 
-    if logger.isEnabledFor(LogLevel.DEBUG):
-        logger.debug(f"사용자 지정 인수 추가\nUserArgs: {utils.pformat(user_args)}")
+    logger.debug(f"사용자 지정 인수 추가\nUserArgs: {utils.pformat(user_args)}")

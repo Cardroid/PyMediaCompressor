@@ -142,22 +142,20 @@ def main():
         utils.check_command_availability("ffmpeg -version"),
         utils.check_command_availability("ffprobe -version"),
     ):
-        if not info[0] or logger.isEnabledFor(LogLevel.DEBUG):
-            info_str = pformat(
-                {
-                    "exit_success": info[0],
-                    "stdout": utils.string_decode(info[1]).splitlines(),
-                    "stderr": utils.string_decode(info[2]).splitlines(),
-                    "exception": info[3],
-                }
-            )
+        info_str = pformat(
+            {
+                "exit_success": info[0],
+                "stdout": utils.string_decode(info[1]).splitlines(),
+                "stderr": utils.string_decode(info[2]).splitlines(),
+                "exception": info[3],
+            }
+        )
 
         if not info[0]:
             logger.critical(f"ffmpeg 또는 ffprobe 동작 확인 불가, 해당 프로그램은 ffmpeg 및 ffprobe가 필요합니다.\nInfo: {info_str}")
             return
 
-        if logger.isEnabledFor(LogLevel.DEBUG):
-            logger.debug(f"command 실행 가능 여부, 검사 정보: {info_str}")
+        logger.debug(f"command 실행 가능 여부, 검사 정보: {info_str}")
 
     logger.debug("ffmpeg, ffprobe 동작 확인 완료")
 
@@ -184,7 +182,7 @@ def main():
 
     if args["scan"]:
         logger.info(f"입력 소스파일: \n{pformat(file_infos)}")
-    elif logger.isEnabledFor(LogLevel.DEBUG):
+    else:
         logger.debug(f"입력 소스파일: \n{pformat(file_infos)}")
 
     logger.info(f"감지된 소스파일 수: {dupl_file_count + file_count}, 입력 소스파일 수: {file_count}, 중복 소스파일 수: {dupl_file_count}")
@@ -204,8 +202,7 @@ def main():
     except Exception:
         max_height = 1440
 
-    if logger.isEnabledFor(LogLevel.DEBUG):
-        logger.debug(f"현재 작업 소스 정보: \n{pformat(file_infos)}")
+    logger.debug(f"현재 작업 소스 정보: \n{pformat(file_infos)}")
 
     encode_option = model.EncodeOption(
         maxHeight=max_height,

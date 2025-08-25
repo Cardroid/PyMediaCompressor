@@ -33,8 +33,7 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
         args_builder.add_auto_args(ffmpegArgs=ffmpegArgs)
         logger.debug("ffmpeg 인수 자동 생성 완료")
 
-    if logger.isEnabledFor(LogLevel.INFO):
-        logger.info(f"현재 작업 파일 정보: \n{pformat(ffmpegArgs.get_all_in_one_dict())}")
+    logger.info(f"현재 작업 파일 정보: \n{pformat(ffmpegArgs.get_all_in_one_dict())}")
 
     if ffmpegArgs.file_info.status in [FileTaskStatus.SKIPPED, FileTaskStatus.PASS]:
         return ffmpegArgs.file_info
@@ -106,8 +105,8 @@ def media_compress_encode(ffmpegArgs: FFmpegArgs) -> FileInfo:
 
         for msg in iter(queue.get, None):
             if msg["type"] == "stderr":
-                if logger.isEnabledFor(LogLevel.DEBUG):
-                    logger.debug(f"ffmpeg output str: \n{pformat(msg)}")
+                logger.debug(f"ffmpeg output str: \n{pformat(msg)}")
+
                 if msg_storage is not None:
                     msg_storage.append(msg["msg"])
 
